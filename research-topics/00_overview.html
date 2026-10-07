@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fidelity Topic Shortlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: consignment-note masthead (label/value grid), then a sticky contents rail beside a ~70ch reading column */
+:root {
+  --paper: #F3F5F3; --surface: #FFFFFF; --ink: #18232C; --muted: #56636D;
+  --rule: #D3DBD7; --tint: #E8EEEB; --code-bg: #EEF2F0;
+  --accent: #2D5A7B; --accent-soft: #E0EAF1;
+  --ok: #23704A; --ok-soft: #DDEFE4; --warn: #8A5A00; --warn-soft: #F6EBD3;
+  --bad: #A3342A; --bad-soft: #F6E0DD; --neutral: #4D5A63; --neutral-soft: #E4E9EC;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 70ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+    --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+    --accent: #8DB8D8; --accent-soft: #1C3242;
+    --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+    --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+  --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+  --accent: #8DB8D8; --accent-soft: #1C3242;
+  --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+  --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body);
+  font-size: 17px; line-height: 1.62; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 64px; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.pagenav { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-block: 14px; border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui); font-size: 0.86rem; }
+.pagenav a { color: var(--muted); text-decoration: none; }
+.pagenav a:hover { color: var(--ink); }
+.pagenav a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--accent); }
+
+.masthead { padding-block: 36px 28px; display: grid; gap: 18px; }
+.eyebrow { font-family: var(--font-ui); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent); margin: 0; }
+.masthead h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 6vw, 4.1rem);
+  line-height: 0.98; letter-spacing: 0.005em; margin: 0; text-wrap: balance; text-transform: uppercase; }
+.dek { font-style: italic; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--muted); margin: 0; max-width: 60ch; }
+.manifest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1.5px solid var(--ink);
+  background: var(--rule); margin-top: 8px; }
+.manifest .cell { padding: 10px 14px 12px; background: var(--surface); min-width: 0; }
+.manifest .cell.wide { grid-column: 1 / -1; }
+.manifest .label { display: block; font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.manifest .value { font-family: var(--font-ui); font-size: 0.98rem; line-height: 1.45; overflow-wrap: anywhere; }
+.manifest .value p { margin: 0; }
+.manifest .value strong { color: var(--accent); }
+
+.layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; align-items: start; margin-top: 12px; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); font-family: var(--font-ui);
+  font-size: 0.88rem; max-height: calc(100vh - 32px); overflow-y: auto; padding-block: 18px; }
+.toc details > summary { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; list-style: none; margin-bottom: 10px; }
+.toc details > summary::-webkit-details-marker { display: none; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; border-left: 1px solid var(--rule); }
+.toc li a { display: block; padding: 4px 0 4px 12px; color: var(--muted); text-decoration: none; line-height: 1.3;
+  margin-left: -1px; border-left: 2px solid transparent; }
+.toc li a:hover { color: var(--ink); border-left-color: var(--accent); }
+
+article { min-width: 0; padding-block: 8px; }
+article > * { max-width: var(--measure); }
+article > .table-wrap, article > figure, article > pre { max-width: 100%; }
+article h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1.1;
+  letter-spacing: 0.01em; text-transform: uppercase; margin: 2.6rem 0 0.9rem; padding-top: 0.9rem;
+  border-top: 2px solid var(--ink); text-wrap: balance; scroll-margin-top: 16px; }
+article h2:first-child { margin-top: 0.4rem; }
+article h3 { font-family: var(--font-ui); font-weight: 600; font-size: 1.15rem; margin: 1.8rem 0 0.5rem; }
+article p, article li { text-wrap: pretty; }
+article p { margin: 0 0 1rem; }
+article ul, article ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+article li { margin-bottom: 0.35rem; }
+article strong { font-weight: 600; }
+article hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+article em { font-style: italic; }
+article blockquote { margin: 1rem 0; padding: 10px 16px; background: var(--accent-soft); border-radius: 4px; }
+
+.table-wrap { overflow-x: auto; margin: 0.6rem 0 1.4rem; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-family: var(--font-ui); font-size: 0.93rem; line-height: 1.45;
+  font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { background: var(--tint); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 500; }
+td code, li code, p code { font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+pre { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.5; background: var(--code-bg); color: var(--ink);
+  padding: 14px 16px; border-radius: 4px; overflow-x: auto; margin: 0.6rem 0 1.4rem; }
+pre code { background: none; padding: 0; }
+
+figure.diagram { margin: 0.8rem 0 1.6rem; padding: 16px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; overflow-x: auto; }
+figure.diagram pre.mermaid { background: none; margin: 0; padding: 0; text-align: center; white-space: pre; }
+figure.diagram figcaption { font-family: var(--font-ui); font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+
+.chip { display: inline-block; font-family: var(--font-ui); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.08em;
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.warn { color: var(--warn); background: var(--warn-soft); }
+.chip.bad { color: var(--bad); background: var(--bad-soft); }
+.chip.info { color: var(--accent); background: var(--accent-soft); }
+.chip.neutral { color: var(--neutral); background: var(--neutral-soft); }
+
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 8px; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); display: inline-block; }
+.pips i.on { background: var(--accent); }
+td.score { white-space: nowrap; }
+
+footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font-family: var(--font-ui);
+  font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .toc { position: static; max-height: none; padding-block: 8px; border: 1px solid var(--rule); border-radius: 4px;
+    padding-inline: 14px; background: var(--surface); }
+  .toc details > summary { margin-bottom: 0; }
+  .toc details[open] > summary { margin-bottom: 10px; }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .manifest { grid-template-columns: minmax(0, 1fr); }
+  article h2 { font-size: 1.6rem; }
+  td:first-child { min-width: 8.5rem; }
+  .pips { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="pagenav" aria-label="Topic pages"><a href="00_overview.html" aria-current="page">Overview</a><a href="topic1_fidelity_gated_autonomy.html">1 · Know When Not to Act</a><a href="topic2_spoof_resilient_logistics.html">2 · When the Data Lies</a><a href="topic3_verified_traceability.html">3 · Prove It Before It Ships</a></nav>
+<header class="masthead">
+<p class="eyebrow">Topic selection · Data fidelity × agentic AI in logistics</p>
+<h1>Choosing the Research Topic</h1>
+<p class="dek">Data fidelity and agentic AI in logistics and supply chains: three candidate topics, compared</p>
+<div class="manifest"><div class="cell wide"><span class="label">Prepared</span><div class="value">7 October 2026</div></div><div class="cell wide"><span class="label">Theme</span><div class="value">How the quality of the data an AI agent sees changes what it does in logistics and supply chains, and how to make agents safe to act on imperfect data</div></div><div class="cell wide"><span class="label">Constraints</span><div class="value">Open-source only, no budget, one 128 GB DGX Spark available, must lead to a Q1 publication, a reusable benchmark and a production-grade product</div></div><div class="cell wide"><span class="label">Inputs reviewed</span><div class="value">Your ChatGPT dossier (<code>data_fidelity_agentic_supply_chain_research_dossier_full.md</code>), your Google-search ideas A–D, the Recursive Language Models paper, and fresh web research on 2025–2026 work</div></div><div class="cell wide"><span class="label">Documents</span><div class="value"><a href="topic1_fidelity_gated_autonomy.html">Topic 1</a> · <a href="topic2_spoof_resilient_logistics.html">Topic 2</a> · <a href="topic3_verified_traceability.html">Topic 3</a> (each also as <code>.html</code>)</div></div></div>
+</header>
+<div class="layout">
+<aside class="toc"><details open><summary>Contents</summary><ol><li><a href="#1-the-three-topics-in-one-paragraph-each">1. The three topics in one paragraph each</a></li><li><a href="#2-scorecard">2. Scorecard</a></li><li><a href="#3-recommendation">3. Recommendation</a></li><li><a href="#4-how-your-google-search-ideas-ad-map-onto-the-topics">4. How your Google-search ideas A–D map onto the topics</a></li><li><a href="#5-what-i-checked-in-your-chatgpt-dossier">5. What I checked in your ChatGPT dossier</a></li><li><a href="#6-recent-technologies-and-where-each-one-fits">6. Recent technologies and where each one fits</a></li><li><a href="#7-shared-open-source-stack-on-one-dgx-spark">7. Shared open-source stack on one DGX Spark</a></li><li><a href="#8-what-will-not-break-in-production-means-in-practice">8. What &quot;will not break in production&quot; means in practice</a></li><li><a href="#9-venues-and-open-calls">9. Venues and open calls</a></li><li><a href="#10-next-steps">10. Next steps</a></li><li><a href="#11-verification-log">11. Verification log</a></li></ol></details></aside>
+<article>
+<h2 id="1-the-three-topics-in-one-paragraph-each">1. The three topics in one paragraph each</h2>
+<p><strong>Topic 1 · Know When Not to Act</strong> (<a href="topic1_fidelity_gated_autonomy.html">md</a> · <a href="topic1_fidelity_gated_autonomy.html">html</a>).
+Supply-chain agents now act on their own: rebooking, rerouting, expediting, reordering. They trust whatever feed they get, and feeds are often stale, duplicated or contradictory. One bad data point can set off a chain of actions across connected agents. The topic builds a <strong>gate</strong> that decides, for each proposed action, whether the evidence is good enough <em>for that action</em>, with thresholds that tighten when an error would spread further through the network, and with a statistical guarantee on the rate of harmful actions. Product: <strong>FidelityGate</strong>, a trust layer between data feeds and any agent.</p>
+<p><strong>Topic 2 · When the Data Lies</strong> (<a href="topic2_spoof_resilient_logistics.html">md</a> · <a href="topic2_spoof_resilient_logistics.html">html</a>).
+Location and identity data in freight are being faked at scale: GPS jamming made 61% of logged Strait of Hormuz transits in August 2026 false, and cyber-enabled cargo theft cost about $725 million in North America in 2025. Brokers now let AI agents vet and book carriers automatically, so the agent becomes the target. The topic builds agents that check physics, neighbouring vessels and identity-history graphs, and that act only when the <strong>cost to deceive</strong> them exceeds the value of the load. Product: <strong>TrackTrust</strong>, a real-time position-trust and counterparty-trust API.</p>
+<p><strong>Topic 3 · Prove It Before It Ships</strong> (<a href="topic3_verified_traceability.html">md</a> · <a href="topic3_verified_traceability.html">html</a>).
+From December 2026 (EUDR), January 2026 (CBAM costs) and February 2027 (battery passports), goods need verified multi-tier data to enter the EU. Supplier data is messy and sometimes false, suppliers will not share raw data, and AI agents that fill in declarations can launder errors into legal filings. The topic builds an <strong>evidence auditor</strong> that turns supplier documents into a claim graph, checks mass balance, plot capacity, forest maps and emissions physics, and lets suppliers prove compliance without revealing secrets. Product: <strong>ProofTrail</strong>, a compliance-evidence copilot for exporters and importers.</p>
+<h2 id="2-scorecard">2. Scorecard</h2>
+<p>Scores are 1 (weak) to 5 (strong). For scoop risk, 5 means <em>low</em> risk.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Topic 1 Gate</th>
+<th>Topic 2 Spoofing</th>
+<th>Topic 3 Traceability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Business pain today (money lost or deadline)</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+</tr>
+<tr>
+<td>Fit with "data fidelity → agentic AI" theme</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+</tr>
+<tr>
+<td>Novelty headroom against 2026 literature</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>3</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+</tr>
+<tr>
+<td>Open data with exact ground truth</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>3</td>
+</tr>
+<tr>
+<td>Feasible on one DGX Spark with no budget</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+</tr>
+<tr>
+<td>Real-time fit</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>3</td>
+</tr>
+<tr>
+<td>Product path with paying users</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>3</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+</tr>
+<tr>
+<td>Fit with Q1 operations / transport journals</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+</tr>
+<tr>
+<td>Scoop risk (5 = low)</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span>2</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>4</td>
+</tr>
+<tr>
+<td>Relevance to UAE / India</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>3</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+<td class="score"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>5</td>
+</tr>
+<tr>
+<td><strong>Total (out of 50)</strong></td>
+<td><strong>38</strong></td>
+<td><strong>47</strong></td>
+<td><strong>41</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3-recommendation">3. Recommendation</h2>
+<p><strong>First choice: Topic 2 (When the Data Lies), with Topic 1's gate built in as its decision layer.</strong></p>
+<ul>
+<li>The problem has hard numbers attached (FBI, Verisk CargoNet, Windward and the Hormuz analysis), so reviewers and industry will accept it as real.</li>
+<li>The open data is excellent: AIS archives and a free live AIS stream for location, and free FMCSA registry files for identity. Synthetic attacks injected on real data give exact labels.</li>
+<li>The core idea, Cost-to-Deceive, is new, graph-based and easy to explain, and the adaptive red-team evaluation lifts it above "another anomaly detector".</li>
+<li>It is genuinely real-time, which matches your production goal.</li>
+<li>It is close to home: Gulf logistics firms made decisions on jammed AIS data all through 2026.</li>
+</ul>
+<p><strong>Choose Topic 1 instead</strong> if your supervisor wants a general decision-science contribution for IJPR or EJOR and is comfortable positioning against the 2026 agent-bullwhip and agent-provenance papers.</p>
+<p><strong>Choose Topic 3 instead</strong> if you want the strongest SME market pull with a hard regulatory deadline, and you are comfortable with more synthetic data and some cryptography.</p>
+<p>The three topics share one engine (provenance graph + fidelity estimate + typed gate + RLM investigator + BullMQ workflows), so the topic you do not pick now can be your second or third paper.</p>
+<h2 id="4-how-your-google-search-ideas-ad-map-onto-the-topics">4. How your Google-search ideas A–D map onto the topics</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Your idea</th>
+<th>Verdict after 2026 literature check</th>
+<th>Where it went</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. Cascading failures in multi-agent systems</strong></td>
+<td>The cascade itself is now well studied: <em>agent bullwhip</em> (arXiv 2605.17036, May 2026), <em>From Spark to Fire</em> (arXiv 2603.04474), <em>Hallucination Cascade</em> (arXiv 2606.07937). Studying it alone is no longer new.</td>
+<td>Topic 1 keeps the cascade as an <strong>outcome</strong> and adds what is missing: data-caused (not model-caused) instability, blast-radius thresholds and fidelity envelopes.</td>
+</tr>
+<tr>
+<td><strong>B. Neurosymbolic data-fidelity testing</strong></td>
+<td>Strong, but LLM + solver planning already exists (arXiv 2507.11352, OptiRepair). Novelty comes from applying symbolic checks to incoming evidence, not plans.</td>
+<td>Core of Topic 1 (OR constraints in the gate) and Topic 3 (mass balance, emissions physics).</td>
+</tr>
+<tr>
+<td><strong>C. Federated cross-border fidelity</strong></td>
+<td>Federated supply-chain GNNs exist; full secure multiparty computation is heavy for a no-budget project.</td>
+<td>Topic 3, with a staged privacy plan: verifiable credentials first, cryptographic aggregation and federated learning as extensions, and a measured "price of privacy".</td>
+</tr>
+<tr>
+<td><strong>D. Adversarial telematics spoofing</strong></td>
+<td>AIS spoof detection exists as single-track models; nobody links it to agent decisions or identity fraud. 2026 events make it urgent.</td>
+<td>Topic 2, with Cost-to-Deceive gating and adaptive red-team evaluation.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-what-i-checked-in-your-chatgpt-dossier">5. What I checked in your ChatGPT dossier</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Claim in the dossier</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RLM paper by Zhang, Kraska, Khattab (arXiv 2512.24601) and the open implementation</td>
+<td><strong>Confirmed.</strong> Also new since: RLM-Qwen3-8B (first natively recursive model) and <code>dspy.RLM</code> in DSPy ≥ 3.1.2.</td>
+</tr>
+<tr>
+<td>Jev released by TypeSafe on 15 September 2026, proprietary</td>
+<td><strong>Confirmed.</strong> Typed outputs with calibrated probabilities; reported 70–500 ms latency. Keep it as an optional baseline, as the dossier says.</td>
+</tr>
+<tr>
+<td>Agent-bullwhip paper (Long, Simchi-Levi et al., 2026)</td>
+<td><strong>Confirmed</strong> (arXiv 2605.17036, May 2026).</td>
+</tr>
+<tr>
+<td>SupChain-Bench at Findings of ACL 2026</td>
+<td><strong>Confirmed.</strong></td>
+</tr>
+<tr>
+<td>DHL Logistics Trend Radar 8.0 adds Agentic AI</td>
+<td><strong>Confirmed</strong> (24 September 2026).</td>
+</tr>
+<tr>
+<td>FBI advisory: ~$725M cargo-theft losses in 2025, +60%</td>
+<td><strong>Confirmed</strong> (30 April 2026).</td>
+</tr>
+<tr>
+<td>IJPR as the best venue, with its agentic special issue</td>
+<td><strong>Needs updating.</strong> IJPR remains a strong fit, but the special issue <em>The Agentic Supply Chain</em> closed on 30 September 2026 (extended deadline). Submit as a regular paper.</td>
+</tr>
+<tr>
+<td>Figure assets in <code>research_assets/</code></td>
+<td><strong>Missing.</strong> The dossier links nine PNG files that are not in the repository, so those images do not render.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Important 2026 work the dossier did not cover:</strong> <em>Agentic AI Autonomy Assessment</em> (arXiv 2607.25405, July 2026), <em>From Spark to Fire</em> (arXiv 2603.04474), <em>AgentNoiseBench</em> (arXiv 2602.11348), <em>Helicase</em> (arXiv 2605.26835), the agent-provenance papers (arXiv 2606.04990, 2608.12761, 2609.20211), the Hormuz AIS findings (2026), Verisk CargoNet Q2 2026, Gartner's March 2026 autonomy prediction, BCG's 2026 logistics ROI survey, and the EUDR / CBAM / battery-passport deadlines. All of these are now cited in the topic documents.</p>
+<p>The dossier's flagship idea (fidelity-aware autonomy with a risk-gated agent) survives as <strong>Topic 1</strong>, with a sharper formal model so it stands apart from the 2026 overlap.</p>
+<h2 id="6-recent-technologies-and-where-each-one-fits">6. Recent technologies and where each one fits</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Status (Oct 2026)</th>
+<th>Topic 1</th>
+<th>Topic 2</th>
+<th>Topic 3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recursive Language Models</strong></td>
+<td>Open (paper Dec 2025; RLM-Qwen3-8B; <code>dspy.RLM</code>)</td>
+<td>Investigate long shipment histories</td>
+<td>Investigate months of AIS and identity history</td>
+<td>Extract claims from huge supplier bundles</td>
+</tr>
+<tr>
+<td><strong>Jev (TypeSafe System One)</strong></td>
+<td>Proprietary API, released 15 Sept 2026</td>
+<td>Optional gate baseline</td>
+<td>Optional gate baseline</td>
+<td>Optional gate baseline</td>
+</tr>
+<tr>
+<td><strong>Open "System One" gate</strong></td>
+<td>Build it: small Qwen3.5 model + constrained decoding + calibration</td>
+<td>Core</td>
+<td>Core</td>
+<td>Core</td>
+</tr>
+<tr>
+<td><strong>BullMQ</strong></td>
+<td>Open source (MIT); Redis 6.2+, Valkey or Dragonfly</td>
+<td>Assess, acquire, review, execute, re-check queues</td>
+<td>Verification and investigation flows</td>
+<td>Per-declaration document flows, re-checks on new forest alerts</td>
+</tr>
+<tr>
+<td><strong>Graphs</strong></td>
+<td>Graphiti (bi-temporal, Apache-2.0), Postgres + Apache AGE, PyG, RelBench</td>
+<td>Provenance graph, blast radius</td>
+<td>Temporal heterogeneous GNN, spatial graph, Cost-to-Deceive cut</td>
+<td>Multi-tier flow graph, plot overlap graph</td>
+</tr>
+<tr>
+<td><strong>Conformal risk control</strong></td>
+<td>Open libraries (MAPIE, crepes)</td>
+<td>Guaranteed harmful-action rate</td>
+<td>Calibrated alert thresholds</td>
+<td>Calibrated claim confidence</td>
+</tr>
+<tr>
+<td><strong>Time-series foundation models</strong></td>
+<td>Chronos-2, TimesFM-2.5, Moirai-2 (open weights)</td>
+<td>ETA and sensor plausibility</td>
+<td>Expected track behaviour</td>
+<td>Emissions trend checks</td>
+</tr>
+<tr>
+<td><strong>Relational foundation models</strong></td>
+<td>RelBench (open, MIT); KumoRFM-2 (proprietary); OpenRFM (open re-implementation)</td>
+<td>Learn directly on ERP tables as graphs</td>
+<td>Carrier tables as graphs</td>
+<td>Supplier tables as graphs</td>
+</tr>
+<tr>
+<td><strong>Open-weight LLMs</strong></td>
+<td>Qwen3.5 family (Apache-2.0), gpt-oss-120b, Gemma 4</td>
+<td>Planner and agents</td>
+<td>Investigator and red team</td>
+<td>Extraction and regulation reasoning</td>
+</tr>
+<tr>
+<td><strong>MCP / A2A</strong></td>
+<td>Open protocols</td>
+<td>Gate exposed as a tool; fidelity travels with messages</td>
+<td>Pre-commit checks for booking agents</td>
+<td>Supplier and buyer agents exchange credentials</td>
+</tr>
+<tr>
+<td><strong>Verifiable Credentials 2.0 / UNTP</strong></td>
+<td>W3C Recommendation; UNTP v1.0 targeted Sept 2026</td>
+<td>Optional</td>
+<td>Carrier identity credentials</td>
+<td>Supplier attestations</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry GenAI + Langfuse</strong></td>
+<td>Open</td>
+<td>Audit trail</td>
+<td>Audit trail</td>
+<td>Audit trail for regulators</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>If by "Jev" you meant Meta's JEPA family (V-JEPA 2 world models) rather than TypeSafe's Jev, say so. JEPA would fit Topic 2 (gate cameras and seal photos) in a different way.</em></p>
+<h2 id="7-shared-open-source-stack-on-one-dgx-spark">7. Shared open-source stack on one DGX Spark</h2>
+<p>The DGX Spark has 128 GB unified memory and is rated for inference on models up to about 200B parameters and fine-tuning up to about 70B.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model serving</td>
+<td>vLLM or SGLang with structured outputs (XGrammar)</td>
+</tr>
+<tr>
+<td>Large model</td>
+<td>gpt-oss-120b (MXFP4) or Qwen3.5-122B-A10B (4-bit): roughly 45–70 tokens/s single-stream reported by the community for gpt-oss-120b</td>
+</tr>
+<tr>
+<td>Fast model</td>
+<td>Qwen3.5-35B-A3B or Qwen3.5-9B</td>
+</tr>
+<tr>
+<td>Recursive investigator</td>
+<td>RLM-Qwen3-8B with the <code>rlms</code> package or <code>dspy.RLM</code></td>
+</tr>
+<tr>
+<td>Typed gate</td>
+<td>Qwen3.5-4B, LoRA-tuned, constrained decoding, calibrated</td>
+</tr>
+<tr>
+<td>Agent framework</td>
+<td>LangGraph or DSPy; MCP for tools</td>
+</tr>
+<tr>
+<td>Job workflows</td>
+<td>BullMQ on Valkey</td>
+</tr>
+<tr>
+<td>High-volume streams</td>
+<td>Apache Kafka (KRaft) or NATS JetStream</td>
+</tr>
+<tr>
+<td>Graph and geo store</td>
+<td>PostgreSQL + Apache AGE + PostGIS + pgvector, or Neo4j Community / FalkorDB; Graphiti for bi-temporal memory</td>
+</tr>
+<tr>
+<td>Graph learning</td>
+<td>PyTorch Geometric, PyGOD</td>
+</tr>
+<tr>
+<td>Optimisation and rules</td>
+<td>OR-Tools CP-SAT, HiGHS, Pydantic schemas</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>OpenTelemetry, Langfuse (self-hosted), Prometheus, Grafana</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>pytest, Hypothesis, k6 or Locust, chaos tests</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="8-what-will-not-break-in-production-means-in-practice">8. What "will not break in production" means in practice</h2>
+<p>No system can promise it will never fail. What reviewers and customers accept is a system that <strong>fails safely and can prove what it did</strong>. Every topic document has a production-hardening table; the shared rules are:</p>
+<ol>
+<li><strong>Fail safe.</strong> When a model, data source or verification step is unavailable, the default is HOLD or REVIEW, never "act anyway".</li>
+<li><strong>Idempotent side effects.</strong> Every tender, reroute, order or filing carries an idempotency key and goes through prepare → validate → commit.</li>
+<li><strong>Bounded autonomy.</strong> Each action class has its own threshold and harmful-action budget, rolled out through shadow mode, then canary, then graduated autonomy.</li>
+<li><strong>Replayable decisions.</strong> Every decision stores the graph snapshot, model, prompt, rule and policy versions so it can be replayed exactly.</li>
+<li><strong>Contracts at every boundary.</strong> Typed schemas in and out; text from documents never becomes instructions.</li>
+<li><strong>Back-pressure and limits.</strong> Queues with rate limits, retries with jitter and dead-letter queues prevent runaway agent loops.</li>
+<li><strong>Measured, not claimed.</strong> Latency, throughput, recovery time and harmful-action rate are reported from load, chaos and drift tests.</li>
+</ol>
+<h2 id="9-venues-and-open-calls">9. Venues and open calls</h2>
+<p>"Q1" depends on the ranking and subject category, so re-check quartiles at submission time.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Venue</th>
+<th>Best for</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>International Journal of Production Research</td>
+<td>Topics 1, 3</td>
+<td>Agentic special issue closed 30 Sept 2026; regular submission still a strong fit</td>
+</tr>
+<tr>
+<td>European Journal of Operational Research</td>
+<td>Topic 1</td>
+<td>Needs the formal model and proofs</td>
+</tr>
+<tr>
+<td>Transportation Research Part C</td>
+<td>Topic 2</td>
+<td>Real-time transport technology</td>
+</tr>
+<tr>
+<td>Transportation Research Part E</td>
+<td>Topics 1, 2, 3</td>
+<td>Has special issues on data-driven industrial engineering (deadline 31 Dec 2026) and ML for logistics systems (30 Oct 2026); probably too soon for this project</td>
+</tr>
+<tr>
+<td>IEEE Transactions on Intelligent Transportation Systems</td>
+<td>Topic 2</td>
+<td>Spoofing and tracking</td>
+</tr>
+<tr>
+<td>Decision Support Systems</td>
+<td>Topics 1, 3</td>
+<td>Decision quality and trust</td>
+</tr>
+<tr>
+<td>International Journal of Production Economics</td>
+<td>Topic 3</td>
+<td>Supply-chain economics and compliance</td>
+</tr>
+<tr>
+<td>Journal of Cleaner Production / Resources, Conservation &amp; Recycling</td>
+<td>Topic 3</td>
+<td>Sustainability data</td>
+</tr>
+<tr>
+<td>MIS Quarterly Executive special issue on delegating work to AI agents</td>
+<td>Product and pilot paper</td>
+<td>Full paper due 1 March 2027</td>
+</tr>
+<tr>
+<td>NeurIPS Datasets &amp; Benchmarks / KDD Applied Data Science</td>
+<td>Benchmark papers for any topic</td>
+<td>Annual cycles</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-next-steps">10. Next steps</h2>
+<ol>
+<li>Read the three topic documents and tell me which one you choose, or which parts to combine.</li>
+<li>I then write the full research proposal for that topic: literature review with every paper opened and summarised, formal model with proofs, benchmark specification and a repository skeleton.</li>
+<li>In parallel, ask for DGX Spark access. Months 1–4 can run on smaller models, and the Spark is needed from month 5.</li>
+</ol>
+<h2 id="11-verification-log">11. Verification log</h2>
+<ul>
+<li>All web research was done on 7 October 2026.</li>
+<li>arXiv, Gartner, BCG, Inside GNSS and several news sites could not be opened directly from the research environment because of its network policy. Their details come from search-engine extracts, which agreed across multiple searches.</li>
+<li>Before you cite any number in a manuscript, open the original source and check it. This applies especially to the Hormuz transit analysis, the CargoNet figures and the regulatory dates.</li>
+</ul>
+</article>
+</div>
+<footer class="colophon"><span>Prepared 7 October 2026 · built from <code>README.md</code></span>
+<span>Open-source research plan · re-check every source before citing</span></footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prove It Before It Ships</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: consignment-note masthead (label/value grid), then a sticky contents rail beside a ~70ch reading column */
+:root {
+  --paper: #F3F5F3; --surface: #FFFFFF; --ink: #18232C; --muted: #56636D;
+  --rule: #D3DBD7; --tint: #E8EEEB; --code-bg: #EEF2F0;
+  --accent: #2E6B3B; --accent-soft: #E1EEE3;
+  --ok: #23704A; --ok-soft: #DDEFE4; --warn: #8A5A00; --warn-soft: #F6EBD3;
+  --bad: #A3342A; --bad-soft: #F6E0DD; --neutral: #4D5A63; --neutral-soft: #E4E9EC;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 70ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+    --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+    --accent: #78C089; --accent-soft: #1D3523;
+    --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+    --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+  --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+  --accent: #78C089; --accent-soft: #1D3523;
+  --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+  --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body);
+  font-size: 17px; line-height: 1.62; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 64px; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.pagenav { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-block: 14px; border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui); font-size: 0.86rem; }
+.pagenav a { color: var(--muted); text-decoration: none; }
+.pagenav a:hover { color: var(--ink); }
+.pagenav a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--accent); }
+
+.masthead { padding-block: 36px 28px; display: grid; gap: 18px; }
+.eyebrow { font-family: var(--font-ui); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent); margin: 0; }
+.masthead h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 6vw, 4.1rem);
+  line-height: 0.98; letter-spacing: 0.005em; margin: 0; text-wrap: balance; text-transform: uppercase; }
+.dek { font-style: italic; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--muted); margin: 0; max-width: 60ch; }
+.manifest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1.5px solid var(--ink);
+  background: var(--rule); margin-top: 8px; }
+.manifest .cell { padding: 10px 14px 12px; background: var(--surface); min-width: 0; }
+.manifest .cell.wide { grid-column: 1 / -1; }
+.manifest .label { display: block; font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.manifest .value { font-family: var(--font-ui); font-size: 0.98rem; line-height: 1.45; overflow-wrap: anywhere; }
+.manifest .value p { margin: 0; }
+.manifest .value strong { color: var(--accent); }
+
+.layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; align-items: start; margin-top: 12px; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); font-family: var(--font-ui);
+  font-size: 0.88rem; max-height: calc(100vh - 32px); overflow-y: auto; padding-block: 18px; }
+.toc details > summary { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; list-style: none; margin-bottom: 10px; }
+.toc details > summary::-webkit-details-marker { display: none; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; border-left: 1px solid var(--rule); }
+.toc li a { display: block; padding: 4px 0 4px 12px; color: var(--muted); text-decoration: none; line-height: 1.3;
+  margin-left: -1px; border-left: 2px solid transparent; }
+.toc li a:hover { color: var(--ink); border-left-color: var(--accent); }
+
+article { min-width: 0; padding-block: 8px; }
+article > * { max-width: var(--measure); }
+article > .table-wrap, article > figure, article > pre { max-width: 100%; }
+article h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1.1;
+  letter-spacing: 0.01em; text-transform: uppercase; margin: 2.6rem 0 0.9rem; padding-top: 0.9rem;
+  border-top: 2px solid var(--ink); text-wrap: balance; scroll-margin-top: 16px; }
+article h2:first-child { margin-top: 0.4rem; }
+article h3 { font-family: var(--font-ui); font-weight: 600; font-size: 1.15rem; margin: 1.8rem 0 0.5rem; }
+article p, article li { text-wrap: pretty; }
+article p { margin: 0 0 1rem; }
+article ul, article ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+article li { margin-bottom: 0.35rem; }
+article strong { font-weight: 600; }
+article hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+article em { font-style: italic; }
+article blockquote { margin: 1rem 0; padding: 10px 16px; background: var(--accent-soft); border-radius: 4px; }
+
+.table-wrap { overflow-x: auto; margin: 0.6rem 0 1.4rem; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-family: var(--font-ui); font-size: 0.93rem; line-height: 1.45;
+  font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { background: var(--tint); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 500; }
+td code, li code, p code { font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+pre { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.5; background: var(--code-bg); color: var(--ink);
+  padding: 14px 16px; border-radius: 4px; overflow-x: auto; margin: 0.6rem 0 1.4rem; }
+pre code { background: none; padding: 0; }
+
+figure.diagram { margin: 0.8rem 0 1.6rem; padding: 16px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; overflow-x: auto; }
+figure.diagram pre.mermaid { background: none; margin: 0; padding: 0; text-align: center; white-space: pre; }
+figure.diagram figcaption { font-family: var(--font-ui); font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+
+.chip { display: inline-block; font-family: var(--font-ui); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.08em;
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.warn { color: var(--warn); background: var(--warn-soft); }
+.chip.bad { color: var(--bad); background: var(--bad-soft); }
+.chip.info { color: var(--accent); background: var(--accent-soft); }
+.chip.neutral { color: var(--neutral); background: var(--neutral-soft); }
+
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 8px; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); display: inline-block; }
+.pips i.on { background: var(--accent); }
+td.score { white-space: nowrap; }
+
+footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font-family: var(--font-ui);
+  font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .toc { position: static; max-height: none; padding-block: 8px; border: 1px solid var(--rule); border-radius: 4px;
+    padding-inline: 14px; background: var(--surface); }
+  .toc details > summary { margin-bottom: 0; }
+  .toc details[open] > summary { margin-bottom: 10px; }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .manifest { grid-template-columns: minmax(0, 1fr); }
+  article h2 { font-size: 1.6rem; }
+  td:first-child { min-width: 8.5rem; }
+  .pips { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="pagenav" aria-label="Topic pages"><a href="00_overview.html">Overview</a><a href="topic1_fidelity_gated_autonomy.html">1 · Know When Not to Act</a><a href="topic2_spoof_resilient_logistics.html">2 · When the Data Lies</a><a href="topic3_verified_traceability.html" aria-current="page">3 · Prove It Before It Ships</a></nav>
+<header class="masthead">
+<p class="eyebrow">Research topic 3 of 3 · Cross-border fidelity</p>
+<h1>Prove It Before It Ships</h1>
+<p class="dek">Graph-grounded, privacy-preserving evidence agents for multi-tier supply-chain compliance data (EUDR, CBAM, Digital Product Passport)</p>
+<div class="manifest"><div class="cell wide"><span class="label">Working title</span><div class="value">Prove It Before It Ships: Neurosymbolic Claim-Evidence Graphs and Privacy-Preserving Verification Agents for Multi-Tier Regulatory Supply-Chain Data</div></div><div class="cell wide"><span class="label">Problem owner</span><div class="value">EU importers, and the non-EU exporters, mills, smelters and traders who supply them (India, UAE, Africa, South-East Asia, Latin America)</div></div><div class="cell wide"><span class="label">Core question</span><div class="value">Is the supplier data behind this declaration true enough to sign, and can we check it without forcing suppliers to reveal their secrets?</div></div><div class="cell wide"><span class="label">Covers your ideas</span><div class="value">C (federated, cross-border fidelity), B (neurosymbolic checks), A (errors spreading across tiers)</div></div><div class="cell wide"><span class="label">Recent tech used</span><div class="value">Recursive Language Models over document bundles, typed "System One" decisions (Jev or open equivalent), BullMQ flows and schedulers, multi-tier flow graphs, W3C Verifiable Credentials 2.0, UN Transparency Protocol</div></div><div class="cell wide"><span class="label">Data</span><div class="value">Open only: JRC Global Forest Cover 2020 (10 m), Global Forest Watch alerts, Sentinel-2, FAOSTAT yields, UN Comtrade, EU CBAM default values, Ember grid emission factors, Open Supply Hub (research access)</div></div><div class="cell wide"><span class="label">Compute</span><div class="value">One DGX Spark (128 GB) is enough</div></div><div class="cell wide"><span class="label">Product</span><div class="value"><strong>ProofTrail</strong>: a compliance-evidence copilot that builds and checks the claim graph before a declaration is filed</div></div><div class="cell wide"><span class="label">Best-fit venues</span><div class="value">IJPE, IJPR, Transportation Research Part E, Decision Support Systems, Journal of Cleaner Production, Resources Conservation &amp; Recycling</div></div></div>
+</header>
+<div class="layout">
+<aside class="toc"><details open><summary>Contents</summary><ol><li><a href="#1-the-problem-in-plain-words">1. The problem in plain words</a></li><li><a href="#2-why-this-matters-now">2. Why this matters now</a></li><li><a href="#3-how-we-would-solve-it-plain-words">3. How we would solve it (plain words)</a></li><li><a href="#4-what-already-exists-and-what-you-can-reuse">4. What already exists (and what you can reuse)</a></li><li><a href="#5-the-gap-and-the-novelty">5. The gap and the novelty</a></li><li><a href="#6-formal-model-for-reviewers">6. Formal model (for reviewers)</a></li><li><a href="#7-graph-design">7. Graph design</a></li><li><a href="#8-system-architecture">8. System architecture</a></li><li><a href="#9-research-questions-and-hypotheses">9. Research questions and hypotheses</a></li><li><a href="#10-benchmark-traceproof-bench">10. Benchmark: TraceProof-Bench</a></li><li><a href="#11-experiments-baselines-and-metrics">11. Experiments, baselines and metrics</a></li><li><a href="#12-compute-plan-one-dgx-spark">12. Compute plan (one DGX Spark)</a></li><li><a href="#13-product-prooftrail">13. Product: ProofTrail</a></li><li><a href="#14-risks-and-how-to-handle-them">14. Risks and how to handle them</a></li><li><a href="#15-twelve-month-plan">15. Twelve-month plan</a></li><li><a href="#16-papers-you-can-get-from-this-topic">16. Papers you can get from this topic</a></li><li><a href="#17-sources">17. Sources</a></li></ol></details></aside>
+<article>
+<h2 id="1-the-problem-in-plain-words">1. The problem in plain words</h2>
+<p>From 2026, many goods cannot enter or be sold in the EU unless the company can <strong>prove</strong> facts about where and how they were made:</p>
+<ul>
+<li><strong>EUDR (deforestation).</strong> Cocoa, coffee, palm oil, soy, cattle, rubber and wood need the GPS location of every plot they came from and proof that no forest was cleared there after 31 December 2020. The rules apply from <strong>30 December 2026</strong> for medium and large companies and <strong>30 June 2027</strong> for micro and small ones. The Commission confirmed in 2026 that there will be no further delay.</li>
+<li><strong>CBAM (carbon border tax).</strong> Steel, aluminium, cement, fertilisers, hydrogen and electricity imports have been in the definitive regime since <strong>1 January 2026</strong>. Importers must report verified embedded emissions or fall back on default values that are deliberately conservative, which means higher cost. Certificate sales start on <strong>1 February 2027</strong>; the first annual declaration is due on <strong>30 September 2027</strong>.</li>
+<li><strong>Digital Product Passport.</strong> Every EV battery and every industrial battery above 2 kWh placed on the EU market needs a digital passport from <strong>18 February 2027</strong>, including carbon footprint and supply-chain due-diligence data. Textiles, electronics and other products follow under ESPR.</li>
+</ul>
+<p>The data needed comes from many tiers: smallholder farmers, cooperatives, mills, smelters, traders. It arrives as PDFs, spreadsheets, phone-collected GPS points and certificates. It is often <strong>incomplete</strong> (polygons missing corners), <strong>inconsistent</strong> (a mill ships more than its farms can grow), <strong>recycled</strong> (one certificate reused for many lots) or <strong>simply wrong</strong> (units, dates, plant IDs). Suppliers also do not want to share raw data such as volumes, prices and energy bills with customers or competitors.</p>
+<p><strong>Where AI agents make it worse.</strong> Companies are starting to use AI agents to fill in due-diligence statements and emissions reports. An agent that copies supplier data into an official declaration without checking it turns a supplier's mistake into the importer's legal liability. It launders bad data into a signed document.</p>
+<p><strong>A realistic example.</strong> A trader exports 2,000 tonnes of coffee to Germany. The supplier file lists 1,140 plots with GPS points. Forty polygons overlap each other, twelve points fall in a lake, and the plots' combined area could produce at most 1,300 tonnes at regional yields. One cooperative's certificate appears on lots shipped by three unrelated exporters. A document-reading agent would see 1,140 valid-looking rows and file the statement. A graph-based check would flag all of these in minutes.</p>
+<p><strong>Who loses money.</strong> EU importers face fines, seized goods and reputational damage. Non-EU exporters, especially small and medium firms, lose market access or pay default-value carbon costs. Indian steel and aluminium MSMEs, for example, often buy inputs from larger producers and do not receive the verified plant-level emissions data CBAM requires.</p>
+<h2 id="2-why-this-matters-now">2. Why this matters now</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What it says</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EUDR date is fixed</td>
+<td>Applies 30 Dec 2026 (medium/large) and 30 June 2027 (micro/small); simplification package published 4 May 2026; no further postponement</td>
+<td><a href="https://www.hlc.com/en/publications/eu-deforestation-regulation-commission-publishes-simplification-package-ahead-of-december-2026">Herbert Smith Freehills Kramer</a>, <a href="https://environment.ec.europa.eu/news/commission-updates-product-scope-and-tools-support-eudr-2026-07-13_en">European Commission</a></td>
+</tr>
+<tr>
+<td>Geolocation data quality is poor</td>
+<td>Plots above 4 ha need polygons; field data is often collected manually, with broken shapes that cannot be checked against satellite data</td>
+<td><a href="https://tracextech.com/geographic-coordinate-requirements-for-eudr/">TraceX</a>, <a href="https://www.koltiva.com/post/polygon-quality-matters-why-geolocation-accuracy-will-define-eudr-ready-coffee-procurement">Koltiva</a></td>
+</tr>
+<tr>
+<td>CBAM costs started in 2026</td>
+<td>Definitive regime since 1 Jan 2026; verified emissions required; default values are conservative and their use is being restricted</td>
+<td><a href="https://www.ipoint-systems.com/news/details/cbam-start-2026/">iPoint</a></td>
+</tr>
+<tr>
+<td>CBAM timeline after simplification</td>
+<td>50-tonne de minimis threshold; certificate sales from 1 Feb 2027; first declaration 30 Sept 2027</td>
+<td><a href="https://www.arthurcox.com/knowledge/carbon-border-adjustment-mechanism-simplification/">Arthur Cox</a></td>
+</tr>
+<tr>
+<td>Exporters feel it</td>
+<td>GTRI estimates CBAM-related cost increases for Indian crude steel of ~15% in 2026, rising later; small exporters lack plant-level verified data</td>
+<td><a href="https://www.maritimegateway.com/eu-carbon-tax-from-2026-set-to-dent-indias-steel-aluminium-exports-gtri">Maritime Gateway / GTRI</a></td>
+</tr>
+<tr>
+<td>Battery passport date is fixed</td>
+<td>EV and industrial batteries &gt;2 kWh need a DPP from 18 Feb 2027</td>
+<td><a href="https://single-market-economy.ec.europa.eu/single-market/digital-product-passport/batteries_en">European Commission</a>, <a href="https://www.bluestonepim.com/blog/digital-product-passport-for-batteries">Bluestone PIM</a></td>
+</tr>
+<tr>
+<td>Open standards exist</td>
+<td>UN Transparency Protocol (UNTP) defines DPPs, traceability events and conformity credentials as verifiable credentials; v1.0 targeted for September 2026</td>
+<td><a href="https://spec-untp-fbb45f.opensource.unicc.org/docs/specification/Architecture">UNTP specification</a></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why this is relevant from Dubai.</strong> The UAE is a major aluminium exporter and a trading hub for coffee, cocoa and other EUDR commodities, and India's steel and aluminium MSMEs are among the most exposed to CBAM. A tool that helps these exporters prove their data has an immediate regional market.</p>
+<h2 id="3-how-we-would-solve-it-plain-words">3. How we would solve it (plain words)</h2>
+<p>Build an <strong>AI evidence auditor</strong> that runs before any declaration is signed:</p>
+<ol>
+<li><strong>Turn every document into claims.</strong> An agent reads the supplier bundle (certificates, invoices, bills of lading, GPS files, emissions templates) and extracts each fact as a typed claim: <em>Plot P, 3.2 ha, at these coordinates, produced 4.1 t on these dates.</em> Recursive Language Models handle bundles of hundreds of pages.</li>
+<li><strong>Connect the claims into a graph.</strong> Plots feed cooperatives, cooperatives feed mills, mills feed exporters, exporters feed shipments. Each link carries quantities, dates and documents.</li>
+<li><strong>Check the graph against hard rules and independent evidence.</strong>
+   - <em>Mass balance:</em> a mill cannot ship more than it received, after normal yield losses.
+   - <em>Productivity:</em> a plot cannot produce more than its area allows at regional yields.
+   - <em>Forest check:</em> the plot polygon must be valid and must not overlap forest that was lost after 2020 (JRC and Global Forest Watch maps).
+   - <em>Emissions physics:</em> reported steel or aluminium emissions must be consistent with the production route and the energy actually used.
+   - <em>Document consistency:</em> quantities, dates, HS codes and parties must match across invoices, bills of lading and certificates; one certificate cannot cover more volume than it was issued for.</li>
+<li><strong>Protect supplier secrets.</strong> Suppliers run a local checker on their own data. It sends the buyer only a signed statement ("lot L passes mass balance for Q3, checked by verifier V") as a verifiable credential, not the raw volumes or energy bills.</li>
+<li><strong>Decide what to file.</strong> For each lot the system recommends: file with actual data, file with default values, request more evidence, or block the lot. It shows the evidence trail behind each recommendation.</li>
+</ol>
+<h2 id="4-what-already-exists-and-what-you-can-reuse">4. What already exists (and what you can reuse)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Research stream</th>
+<th>Key work</th>
+<th>What it solved</th>
+<th>What is still open</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Supply-network discovery with LLMs</td>
+<td><em>Helicase</em> (<a href="https://arxiv.org/abs/2605.26835">arXiv 2605.26835</a>); KG + LLM visibility (<a href="https://doi.org/10.1080/00207543.2025.2575841">IJPR 2025</a>)</td>
+<td>Build multi-tier graphs from public sources with uncertainty</td>
+<td>Discovery, not verification of supplier-declared regulatory data</td>
+</tr>
+<tr>
+<td>Privacy-preserving supply-chain learning</td>
+<td>Federated GNNs for supply-chain data sharing (<a href="https://www.sciencedirect.com/science/article/pii/S1568494624012493">Applied Soft Computing 2025</a>)</td>
+<td>Share models, not data</td>
+<td>Not about verifying specific declarations or regulatory rules</td>
+</tr>
+<tr>
+<td>Cross-organisational agent trust</td>
+<td><em>When Agentic Trust Crosses Organizational Boundaries</em> (<a href="https://arxiv.org/abs/2609.22961">arXiv 2609.22961</a>); <em>AgentLeak</em> privacy-leak benchmark (<a href="https://arxiv.org/abs/2602.11510">arXiv 2602.11510</a>)</td>
+<td>Reference models for trust evidence across organisations; leakage risks in multi-agent systems</td>
+<td>No commodity, emissions or mass-balance semantics</td>
+</tr>
+<tr>
+<td>Agent provenance</td>
+<td><em>Correct Is Not Governed</em> (<a href="https://arxiv.org/abs/2608.12761">arXiv 2608.12761</a>); <em>Silence Is Endorsement</em> (<a href="https://arxiv.org/abs/2609.20211">arXiv 2609.20211</a>)</td>
+<td>Agents drop verification status; provenance layers fix it</td>
+<td>Not applied to regulatory filings</td>
+</tr>
+<tr>
+<td>Regulatory multi-agent systems</td>
+<td><em>Enabling Regulatory Multi-Agent Collaboration</em> (<a href="https://arxiv.org/abs/2509.09215">arXiv 2509.09215</a>); LLM agents in law survey (<a href="https://arxiv.org/abs/2601.06216">arXiv 2601.06216</a>)</td>
+<td>Decompose obligations into plan, execute, verify roles</td>
+<td>Generic; no physical consistency checks</td>
+</tr>
+<tr>
+<td>Remote sensing for deforestation</td>
+<td>JRC Global Forest Cover 2020; GFW integrated alerts; Hansen forest change</td>
+<td>Open, global forest data aligned with the EUDR cut-off</td>
+<td>Rarely joined with supply-network graphs and document claims</td>
+</tr>
+<tr>
+<td>Data standards</td>
+<td>UNTP, W3C VC 2.0, GS1 EPCIS 2.0 and Digital Link, EU battery passport schemas</td>
+<td>Shared vocabularies for credentials and events</td>
+<td>Standards say how to share data, not how to test whether it is true</td>
+</tr>
+<tr>
+<td>Commercial tools</td>
+<td>Coolset, osapiens, TraceX, Koltiva, Satelligence</td>
+<td>Data collection, satellite checks, reporting</td>
+<td>Closed; mainly collection and reporting; limited cross-tier consistency logic</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Reusable building blocks:</strong> JRC GFC2020 and GFW alert layers through open APIs, FAOSTAT yield tables, the EU's CBAM communication template and default values, UNTP schemas, the RLM library, OR-Tools for flow checks, and verifiable-credential libraries from the OpenWallet Foundation.</p>
+<h2 id="5-the-gap-and-the-novelty">5. The gap and the novelty</h2>
+<p>Compliance tools collect data and produce reports. Research builds supply-network graphs or protects privacy. <strong>No published work we found tests whether multi-tier regulatory data is internally and physically consistent, measures how much checking power is lost when suppliers keep data private, and turns that into a filing decision.</strong> Five contributions:</p>
+<ol>
+<li><strong>Claim-evidence graph with cross-tier physical constraints.</strong> Mass balance, plot productivity, forest overlap and emissions physics are encoded as constraints over a multi-tier flow graph. They catch volume laundering and over-claiming that document-by-document review misses.</li>
+<li><strong>Neurosymbolic regulation-as-code.</strong> LLMs translate regulation and guidance into candidate executable rules; experts validate them; a symbolic engine applies them. The LLM extracts and explains; it never decides compliance alone.</li>
+<li><strong>Measured price of privacy.</strong> Each rule is checked in three modes: full data, supplier-side attestations (verifiable credentials with selective disclosure), and cryptographic aggregate proofs. The paper reports how much detection power each privacy level costs for each fraud type.</li>
+<li><strong>Fidelity-aware filing decisions.</strong> A decision model chooses actual data, default values, more evidence or blocking a lot, by comparing expected carbon cost, penalty risk and the cost of collecting evidence. It puts a money value on data fidelity.</li>
+<li><strong>TraceProof-Bench.</strong> An open benchmark of synthetic multi-tier supply networks (coffee, cocoa, palm; steel, aluminium; batteries) grounded in open data, with labelled faults and document bundles.</li>
+</ol>
+<h2 id="6-formal-model-for-reviewers">6. Formal model (for reviewers)</h2>
+<p><strong>Graph.</strong> G = (V, E) with node types: Plot, Installation, Organisation, Lot, Shipment, Document, Certificate, Claim, EvidenceTile, Rule. Flow edges (u → v) carry quantity <em>q_uv</em>, period and unit. Claims are atomic assertions with value, unit, issuer and document anchor.</p>
+<p><strong>Constraint families (the symbolic layer).</strong></p>
+<ul>
+<li><em>Flow conservation with yield:</em> for each processing node v and period t, Σ_out q ≤ y_max(v) · Σ_in q + ε.</li>
+<li><em>Plot productivity:</em> for each plot p, Σ q attributed to p ≤ area(p) · Y_p95(crop, region) · Δt.</li>
+<li><em>Deforestation-free:</em> polygon(p) is valid (closed, not self-intersecting, plausible area, on land) and polygon(p) ∩ Forest₂₀₂₀ ∩ Loss_after(2020-12-31) = ∅.</li>
+<li><em>Emissions plausibility:</em> reported intensity of installation i lies in the band for its production route (for example BF-BOF vs EAF steel; smelter electricity source), and direct plus indirect emissions are consistent with fuel and electricity inputs times emission factors.</li>
+<li><em>Document consistency:</em> quantities, dates, HS codes and parties agree across documents; certificate volume used ≤ volume issued.</li>
+</ul>
+<p><strong>Definition 1 (Claim fidelity).</strong> For a claim c, F(c) is the probability that c is true given the graph, estimated from rule outcomes, corroboration by independent evidence and issuer history. A declaration's fidelity is bounded below by the union bound over the claims it relies on (as in Topic 1), so a single weak link is visible.</p>
+<p><strong>Definition 2 (Price of privacy).</strong> For fault type f and privacy mode m, PoP(f, m) = Recall_full(f) − Recall_m(f), measured at a fixed false-alarm rate.</p>
+<p><strong>Filing decision.</strong> For lot ℓ with options {actual, default, acquire, block}:
+- cost(actual) = p_c · E_actual + P(non-compliance | F) · Penalty
+- cost(default) = p_c · E_default
+- cost(acquire) = cost of evidence + delay cost + expected cost after re-assessment
+- cost(block) = lost margin.</p>
+<p>Here p_c is the carbon price (CBAM) or zero (EUDR, where only the penalty term applies). The paper derives the threshold on F above which filing actual data is cheaper, and tests it on the benchmark. This gives a direct answer to "what is good supplier data worth?"</p>
+<p><strong>Privacy mechanisms, in order of complexity.</strong>
+1. Supplier-side verifier issues a W3C VC 2.0 / UNTP conformity credential stating which rules passed; selective disclosure (SD-JWT or BBS signatures) reveals only needed fields.
+2. Cross-tier mass balance with additively homomorphic commitments and range proofs, so each tier proves Σ out ≤ Σ in without revealing quantities.
+3. Federated learning (Flower with secure aggregation) to train anomaly models across suppliers without pooling data.</p>
+<p>Start with mechanism 1; mechanisms 2 and 3 are extensions if time allows.</p>
+<h2 id="7-graph-design">7. Graph design</h2>
+<figure class="diagram"><pre class="mermaid">flowchart LR
+  PL[&quot;Plot&lt;br/&gt;(polygon, area)&quot;] --&gt;|supplies q| CO[&quot;Cooperative / collector&quot;]
+  CO --&gt;|supplies q| MI[&quot;Mill / processor&lt;br/&gt;(yield)&quot;]
+  MI --&gt;|supplies q| EX[&quot;Exporter&quot;]
+  EX --&gt;|ships| SH[&quot;Shipment / lot&quot;]
+  SH --&gt;|declared_in| DDS[&quot;Due-diligence statement&lt;br/&gt;or CBAM declaration&quot;]
+  DOC[&quot;Document&lt;br/&gt;(invoice, B/L, certificate)&quot;] --&gt;|asserts| CL[&quot;Claim&quot;]
+  CL --&gt;|about| SH
+  EV[&quot;Evidence&lt;br/&gt;(forest tile, registry)&quot;] --&gt;|supports / contradicts| CL
+  CERT[&quot;Certificate&quot;] --&gt;|covers| SH
+  VC[&quot;Verifiable credential&lt;br/&gt;(supplier attestation)&quot;] --&gt;|attests| MI
+</pre></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Graph check</th>
+<th>Algorithm</th>
+<th>What it detects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flow conservation</td>
+<td>Linear constraints / max-flow feasibility per period</td>
+<td>Volume laundering, over-claiming</td>
+</tr>
+<tr>
+<td>Plot capacity</td>
+<td>Aggregation over plot subtrees</td>
+<td>Phantom plots, inflated yields</td>
+</tr>
+<tr>
+<td>Geometry</td>
+<td>Polygon validity, overlap graph of plots, spatial join with forest layers</td>
+<td>Duplicate, fabricated or forest-overlapping plots</td>
+</tr>
+<tr>
+<td>Certificate usage</td>
+<td>Sum of volumes per certificate across all lots</td>
+<td>Certificate reuse</td>
+</tr>
+<tr>
+<td>Cross-document consistency</td>
+<td>Entity resolution + contradiction edges</td>
+<td>Mismatched quantities, dates, parties</td>
+</tr>
+<tr>
+<td>Change propagation</td>
+<td>Descendant traversal when a new forest alert arrives</td>
+<td>Which open lots are affected right now</td>
+</tr>
+</tbody>
+</table></div>
+<p>Tools: PostgreSQL + PostGIS + Apache AGE (or Neo4j Community), Shapely and GeoPandas for geometry, OR-Tools or HiGHS for flow feasibility, Google Earth Engine or local Sentinel-2/JRC tiles for forest layers.</p>
+<h2 id="8-system-architecture">8. System architecture</h2>
+<figure class="diagram"><pre class="mermaid">flowchart LR
+  UP[&quot;Supplier uploads&lt;br/&gt;PDF, XLSX, GeoJSON, CBAM template&quot;] --&gt; Q[&quot;Document flows&lt;br/&gt;(BullMQ parent-child)&quot;]
+  Q --&gt; X[&quot;RLM extraction&lt;br/&gt;bundle → typed claims&quot;]
+  X --&gt; G[&quot;Claim-evidence graph&lt;br/&gt;(Postgres + PostGIS + AGE)&quot;]
+  SAT[&quot;Forest layers + alerts&lt;br/&gt;(JRC, GFW)&quot;] --&gt; G
+  REF[&quot;Reference data&lt;br/&gt;(yields, emission factors, CBAM defaults)&quot;] --&gt; R
+  G --&gt; R[&quot;Rule engine&lt;br/&gt;mass balance, geometry, emissions, documents&quot;]
+  SUP[&quot;Supplier-side verifier&quot;] --&gt;|verifiable credential| G
+  R --&gt; D[&quot;Filing decision&lt;br/&gt;typed gate&quot;]
+  D --&gt;|file actual / default| OUT[&quot;Declaration package&lt;br/&gt;+ evidence trail&quot;]
+  D --&gt;|acquire| ASK[&quot;Evidence request to supplier&quot;]
+  D --&gt;|block| HUM[&quot;Compliance officer review&quot;]
+  SAT --&gt;|new alert| RS[&quot;Re-verification scheduler&lt;br/&gt;(BullMQ job schedulers)&quot;]
+  RS --&gt; R
+</pre></figure>
+<p><strong>Where the recent technologies fit</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Role</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recursive Language Models</strong></td>
+<td>A supplier bundle (hundreds of pages, thousands of plot rows) is a REPL variable. The model writes code to split it by document type, calls sub-models to extract claims from each part, and cross-checks totals in code. This avoids context rot on very long bundles.</td>
+<td>Compare extraction recall and cost against long-context and RAG</td>
+</tr>
+<tr>
+<td><strong>Jev / System One</strong></td>
+<td>Typed decisions per claim or lot ("polygon valid?", "filing option?") with probabilities</td>
+<td>Optional Jev baseline; open typed small model is the core</td>
+</tr>
+<tr>
+<td><strong>BullMQ</strong></td>
+<td>One parent flow per declaration with child jobs per document and per rule family; retries for flaky OCR or satellite calls; job schedulers re-run checks when weekly forest alerts arrive; rate limits for external registries</td>
+<td>Runs on Valkey; Python and Node workers</td>
+</tr>
+<tr>
+<td><strong>Graphs</strong></td>
+<td>Flow graph for mass balance, overlap graph for plots, provenance graph for claims, descendant traversal for alert impact</td>
+<td>The core of the method</td>
+</tr>
+<tr>
+<td><strong>Verifiable credentials (W3C VC 2.0, UNTP)</strong></td>
+<td>Supplier attestations instead of raw data</td>
+<td>OpenWallet Foundation libraries</td>
+</tr>
+<tr>
+<td><strong>GraphRAG over regulation texts</strong></td>
+<td>Answer "which rule applies to this HS code and this date?" with citations</td>
+<td>Rules are still validated by people</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry + Langfuse</strong></td>
+<td>Trace every extraction, rule check and decision</td>
+<td>Audit evidence for regulators</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="9-research-questions-and-hypotheses">9. Research questions and hypotheses</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Research question</th>
+<th>Hypothesis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RQ1</td>
+<td>Do cross-tier graph constraints catch faults that document-level review misses?</td>
+<td>H1: Volume laundering, phantom plots and certificate reuse are mostly invisible to document-level checks and mostly visible to graph checks.</td>
+</tr>
+<tr>
+<td>RQ2</td>
+<td>Do LLM-only pipelines launder errors into declarations?</td>
+<td>H2: An LLM agent that extracts and files without symbolic checks passes a measurable share of injected faults; the neurosymbolic pipeline cuts this sharply.</td>
+</tr>
+<tr>
+<td>RQ3</td>
+<td>How much detection power is lost when suppliers share attestations instead of data?</td>
+<td>H3: The price of privacy is small for local faults (bad polygons) and large for cross-tier faults (laundering) unless cryptographic aggregation is used.</td>
+</tr>
+<tr>
+<td>RQ4</td>
+<td>Does fidelity-aware filing lower expected compliance cost?</td>
+<td>H4: Lower expected cost than "always actual" and "always default" policies across carbon-price and penalty scenarios.</td>
+</tr>
+<tr>
+<td>RQ5</td>
+<td>Does RLM extraction beat long-context and RAG on long bundles?</td>
+<td>H5: Higher claim recall at equal or lower cost.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-benchmark-traceproof-bench">10. Benchmark: TraceProof-Bench</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Track</th>
+<th>Network generator grounded in</th>
+<th>Injected faults (synthetic, labelled)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EUDR commodities (coffee, cocoa, palm)</td>
+<td>Real producing regions, FAOSTAT yields, JRC GFC2020 forest map, GFW alerts</td>
+<td>Invalid or overlapping polygons, points in water or towns, forest-overlap plots, phantom plots, volume laundering at mills, certificate reuse, date errors</td>
+</tr>
+<tr>
+<td>CBAM goods (steel, aluminium)</td>
+<td>Production routes, Ember grid factors, CBAM default values, trade flows from UN Comtrade</td>
+<td>Under-reported emissions, wrong production route, energy-emission mismatch, unit errors, wrong installation IDs</td>
+</tr>
+<tr>
+<td>Battery passport</td>
+<td>Public battery chemistries and published carbon-footprint ranges</td>
+<td>Missing due-diligence links, carbon-footprint inconsistencies, recycled-content over-claims</td>
+</tr>
+</tbody>
+</table></div>
+<p>Each case ships with a <strong>document bundle</strong>: generated certificates, invoices, bills of lading, CBAM templates and GeoJSON files, with realistic layout noise and OCR errors. Labels are exact because faults are injected by versioned operators.</p>
+<h2 id="11-experiments-baselines-and-metrics">11. Experiments, baselines and metrics</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Baseline</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B0</td>
+<td>Rule checks on single documents (completeness, format)</td>
+<td>Typical current tooling</td>
+</tr>
+<tr>
+<td>B1</td>
+<td>LLM agent reads bundle and fills the declaration</td>
+<td>Shows error laundering</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>LLM agent with RAG over regulation</td>
+<td>Better rules, no physical checks</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>Graph constraints without LLM extraction (perfect claims)</td>
+<td>Upper bound on symbolic checking</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>Jev as the typed gate (optional)</td>
+<td>System One comparator</td>
+</tr>
+<tr>
+<td>Full</td>
+<td>RLM extraction + claim graph + constraints + privacy modes + filing decision</td>
+<td>Proposed</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Metrics.</strong> Fault recall and precision by fault type; laundering rate (share of faults that reach a filed declaration); price of privacy per fault type; expected compliance cost under carbon-price and penalty scenarios; extraction recall; time and cost per declaration; time from a new forest alert to the flagging of affected lots.</p>
+<h2 id="12-compute-plan-one-dgx-spark">12. Compute plan (one DGX Spark)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Approach</th>
+<th>Fits?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Document extraction</td>
+<td>RLM-Qwen3-8B root with Qwen3.5-35B-A3B sub-calls; vision model for scanned pages</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Regulation reasoning</td>
+<td>gpt-oss-120b or Qwen3.5-122B-A10B (4-bit)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Geometry and forest checks</td>
+<td>PostGIS and GeoPandas on CPU; pre-downloaded tiles for study regions</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Flow checks</td>
+<td>OR-Tools / HiGHS</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Typed gate</td>
+<td>Qwen3.5-4B with constrained decoding</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table></div>
+<p>Satellite processing is limited to study regions, which keeps storage and compute small.</p>
+<h2 id="13-product-prooftrail">13. Product: ProofTrail</h2>
+<p><strong>What it is.</strong> A compliance-evidence copilot. Exporters and importers upload supplier bundles; ProofTrail builds the claim graph, runs the checks, explains every flag, and produces a filing package with its evidence trail. Suppliers get a free local verifier that issues credentials, so they can prove compliance once and reuse it with many buyers.</p>
+<p><strong>Who would pay</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>User</th>
+<th>Pain</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EU importers (operators)</td>
+<td>Legal liability for supplier data</td>
+<td>Evidence trail behind every filing</td>
+</tr>
+<tr>
+<td>Non-EU exporters and traders (India, UAE, Africa, LatAm)</td>
+<td>Risk losing EU buyers; default-value carbon costs</td>
+<td>Prove data once, reuse with all buyers</td>
+</tr>
+<tr>
+<td>Mills, smelters, cooperatives</td>
+<td>Asked for raw data by many customers</td>
+<td>Share attestations instead of secrets</td>
+</tr>
+<tr>
+<td>Freight forwarders and customs brokers</td>
+<td>Customers ask them for compliance help</td>
+<td>A new value-added service at the shipment level</td>
+</tr>
+<tr>
+<td>Verifiers and certification bodies</td>
+<td>Manual review of large bundles</td>
+<td>Pre-checked bundles with flagged faults</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Real-time behaviour.</strong> Compliance is event-driven rather than millisecond-critical. A supplier upload triggers a flow that finishes in minutes. A new weekly forest alert triggers a graph traversal that flags every open lot sourced from the affected plots. A shipment booking triggers a final check before customs filing.</p>
+<p><strong>Production hardening</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Regulatory change</td>
+<td>Rules versioned as code with effective dates; every decision records the rule version</td>
+</tr>
+<tr>
+<td>Bad uploads</td>
+<td>Schema validation, file-type checks, malware scanning, size limits</td>
+</tr>
+<tr>
+<td>OCR and extraction errors</td>
+<td>Confidence per claim; low-confidence claims go to review, never straight to a filing</td>
+</tr>
+<tr>
+<td>External services down (satellite, registries)</td>
+<td>BullMQ retries with backoff, cached tiles, explicit "unverified" state rather than silent pass</td>
+</tr>
+<tr>
+<td>Duplicate filings</td>
+<td>Idempotency key per lot and declaration version</td>
+</tr>
+<tr>
+<td>Confidential supplier data</td>
+<td>Supplier-side verification by default; encryption at rest; tenant isolation; data-residency options</td>
+</tr>
+<tr>
+<td>Audit</td>
+<td>Immutable decision log linking each filed value to claims, documents, rule versions and model versions</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Competitors.</strong> Coolset, osapiens, TraceX, Koltiva, Satelligence and large ERP vendors. ProofTrail's differences: cross-tier consistency logic, measured privacy-preserving verification, open benchmark, and a free supplier-side verifier that builds a network effect.</p>
+<h2 id="14-risks-and-how-to-handle-them">14. Risks and how to handle them</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Regulations keep changing (EUDR simplification, CBAM revisions)</td>
+<td>Rules as versioned code; the method is regulation-agnostic; include a "rule change" experiment</td>
+</tr>
+<tr>
+<td>No real labelled fraud data</td>
+<td>Synthetic faults from documented failure modes; expert review of a sample; optional anonymised partner data</td>
+</tr>
+<tr>
+<td>Cryptography takes over the schedule</td>
+<td>Ship credentials-based privacy first; treat homomorphic commitments and federated learning as extensions</td>
+</tr>
+<tr>
+<td>Crowded commercial market</td>
+<td>Position the open verification engine as infrastructure that tools and verifiers can embed</td>
+</tr>
+<tr>
+<td>Legal reliance on the tool</td>
+<td>Tool supports, never replaces, the operator's due diligence; say so in product and paper</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Do not claim:</strong> that the system guarantees compliance; that synthetic faults reflect real fraud rates; that satellite forest maps are legally binding (the JRC map is explicitly non-binding).</p>
+<h2 id="15-twelve-month-plan">15. Twelve-month plan</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Months</th>
+<th>Work</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–2</td>
+<td>Regulation analysis, constraint catalogue, formal model</td>
+<td>Problem-formulation draft</td>
+</tr>
+<tr>
+<td>2–4</td>
+<td>Network generators, fault operators, document-bundle generator</td>
+<td>TraceProof-Bench v0.1</td>
+</tr>
+<tr>
+<td>4–6</td>
+<td>Baselines B0–B3; RLM extraction</td>
+<td>First results on laundering rate</td>
+</tr>
+<tr>
+<td>6–8</td>
+<td>Claim graph, rule engine, filing decision, credential-based privacy</td>
+<td>ProofTrail v0.1</td>
+</tr>
+<tr>
+<td>8–10</td>
+<td>Price-of-privacy experiments; cost scenarios</td>
+<td>Results tables</td>
+</tr>
+<tr>
+<td>10–12</td>
+<td>Writing; release; pilot with an exporter or forwarder if available</td>
+<td>Journal submission + benchmark release</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="16-papers-you-can-get-from-this-topic">16. Papers you can get from this topic</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>Venue type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prove it before it ships: claim-evidence graphs for multi-tier regulatory data</td>
+<td>IJPE, IJPR, DSS</td>
+</tr>
+<tr>
+<td>The price of privacy in supply-chain compliance verification</td>
+<td>TR-E, POM, Information &amp; Management</td>
+</tr>
+<tr>
+<td>What is good supplier data worth? Fidelity-aware CBAM filing decisions</td>
+<td>Journal of Cleaner Production, RCR, EJOR</td>
+</tr>
+<tr>
+<td>TraceProof-Bench</td>
+<td>NeurIPS D&amp;B, KDD Applied Data Science</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="17-sources">17. Sources</h2>
+<ol>
+<li>Herbert Smith Freehills Kramer. <em>EU Deforestation Regulation: Commission publishes simplification package ahead of December 2026 application date.</em> 2026. https://www.hlc.com/en/publications/eu-deforestation-regulation-commission-publishes-simplification-package-ahead-of-december-2026</li>
+<li>European Commission. <em>Commission updates product scope and tools to support EUDR.</em> 13 July 2026. https://environment.ec.europa.eu/news/commission-updates-product-scope-and-tools-support-eudr-2026-07-13_en</li>
+<li>TraceX. <em>EUDR geolocation requirements.</em> https://tracextech.com/geographic-coordinate-requirements-for-eudr/</li>
+<li>Koltiva. <em>Polygon quality matters.</em> https://www.koltiva.com/post/polygon-quality-matters-why-geolocation-accuracy-will-define-eudr-ready-coffee-procurement</li>
+<li>iPoint. <em>CBAM: Start of the Definitive Regime in January 2026.</em> https://www.ipoint-systems.com/news/details/cbam-start-2026/</li>
+<li>Arthur Cox. <em>Simplification of the CBAM.</em> https://www.arthurcox.com/knowledge/carbon-border-adjustment-mechanism-simplification/</li>
+<li>Maritime Gateway / GTRI. <em>EU carbon tax from 2026 set to dent India's steel, aluminium exports.</em> https://www.maritimegateway.com/eu-carbon-tax-from-2026-set-to-dent-indias-steel-aluminium-exports-gtri</li>
+<li>European Commission. <em>Digital Product Passport for batteries.</em> https://single-market-economy.ec.europa.eu/single-market/digital-product-passport/batteries_en</li>
+<li>Bluestone PIM. <em>Digital Product Passport for Batteries: The February 2027 Deadline.</em> https://www.bluestonepim.com/blog/digital-product-passport-for-batteries</li>
+<li>UN/CEFACT. <em>UN Transparency Protocol specification.</em> https://spec-untp-fbb45f.opensource.unicc.org/docs/specification/Architecture</li>
+<li>EC JRC. <em>Global map of forest cover 2020, V4.</em> https://developers.google.com/earth-engine/datasets/catalog/JRC_GFC2020_V4</li>
+<li>Open Supply Hub API and researcher access. https://info.opensupplyhub.org/api · https://info.opensupplyhub.org/researchers</li>
+<li><em>Helicase: Uncertainty-Guided Supply Chain Knowledge Graph Construction with Autonomous Multi-Agent LLMs.</em> arXiv:2605.26835. https://arxiv.org/abs/2605.26835</li>
+<li><em>Federated graph neural network for privacy-preserved supply chain data sharing.</em> Applied Soft Computing, 2025. https://www.sciencedirect.com/science/article/pii/S1568494624012493</li>
+<li><em>When Agentic Trust Crosses Organizational Boundaries.</em> arXiv:2609.22961. https://arxiv.org/abs/2609.22961</li>
+<li><em>AgentLeak: A Full-Stack Benchmark for Privacy Leakage in Multi-Agent LLM Systems.</em> arXiv:2602.11510. https://arxiv.org/abs/2602.11510</li>
+<li><em>Correct Is Not Governed: Provenance Integrity in Agentic Workflows.</em> arXiv:2608.12761. https://arxiv.org/abs/2608.12761</li>
+<li><em>Silence Is Endorsement: Verification-Status Laundering in LLM Agent Pipelines.</em> arXiv:2609.20211. https://arxiv.org/abs/2609.20211</li>
+<li><em>Enabling Regulatory Multi-Agent Collaboration: Architecture, Challenges, and Solutions.</em> arXiv:2509.09215. https://arxiv.org/abs/2509.09215</li>
+<li><em>LLM Agents in Law: Taxonomy, Applications, and Challenges.</em> arXiv:2601.06216. https://arxiv.org/abs/2601.06216</li>
+<li><em>Enhancing supply chain visibility with knowledge graphs and large language models.</em> IJPR, 2025. https://doi.org/10.1080/00207543.2025.2575841</li>
+<li>Zhang, A. L., Kraska, T., Khattab, O. <em>Recursive Language Models.</em> arXiv:2512.24601. https://arxiv.org/abs/2512.24601</li>
+<li>TypeSafe AI. <em>Introducing System One Models &amp; Jev.</em> 15 September 2026. https://typesafe.ai/blog/introducing-system-one-models-and-jev</li>
+<li>BullMQ documentation. https://docs.bullmq.io</li>
+<li>W3C. <em>Verifiable Credentials Data Model v2.0.</em> https://www.w3.org/TR/vc-data-model-2.0/</li>
+<li>GS1. <em>EPCIS &amp; CBV 2.0.</em> https://www.gs1.org/standards/epcis</li>
+</ol>
+<p><em>Verification note: regulatory dates were checked through web search on 7 October 2026 and can change. Re-check the EUDR, CBAM and battery-passport timelines on the official EU pages before submission.</em></p>
+</article>
+</div>
+<footer class="colophon"><span>Prepared 7 October 2026 · built from <code>topic3_verified_traceability.md</code></span>
+<span>Open-source research plan · re-check every source before citing</span></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function render() {
+    if (!window.mermaid) return;
+    var tv = {
+      background: tok('--surface'), primaryColor: tok('--accent-soft'), primaryBorderColor: tok('--accent'),
+      primaryTextColor: tok('--ink'), nodeTextColor: tok('--ink'), textColor: tok('--ink'),
+      lineColor: tok('--muted'), secondaryColor: tok('--tint'), tertiaryColor: tok('--surface'),
+      clusterBkg: tok('--tint'), clusterBorder: tok('--rule'), titleColor: tok('--ink'),
+      edgeLabelBackground: tok('--surface'), fontFamily: 'Barlow, Helvetica Neue, Arial, sans-serif', fontSize: '15px'
+    };
+    try {
+      window.mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: tv,
+        flowchart: { curve: 'basis', useMaxWidth: true } });
+      var p = window.mermaid.run({ querySelector: 'pre.mermaid' });
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+})();
+</script>
+</body>
+</html>
