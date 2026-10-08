@@ -29,6 +29,9 @@ FONTS = (
 
 # page id -> (source md, output html, browser title, eyebrow, light accent, light soft, dark accent, dark soft)
 PAGES = {
+    "final": ("final_topic_when_the_data_lies.md", "final_topic_when_the_data_lies.html",
+              "When the Data Lies", "Final research topic · Fidelity-gated, spoof-resilient logistics agents",
+              "#1F5F99", "#DFEAF5", "#7DB3E8", "#17304A"),
     "overview": ("README.md", "00_overview.html", "Fidelity Topic Shortlist",
                  "Topic selection · Data fidelity × agentic AI in logistics",
                  "#2D5A7B", "#E0EAF1", "#8DB8D8", "#1C3242"),
@@ -42,7 +45,7 @@ PAGES = {
            "Prove It Before It Ships", "Research topic 3 of 3 · Cross-border fidelity",
            "#2E6B3B", "#E1EEE3", "#78C089", "#1D3523"),
 }
-NAV = [("overview", "Overview"), ("t1", "1 · Know When Not to Act"),
+NAV = [("final", "Final topic"), ("overview", "Shortlist"), ("t1", "1 · Know When Not to Act"),
        ("t2", "2 · When the Data Lies"), ("t3", "3 · Prove It Before It Ships")]
 VERDICTS = {"ACT": "ok", "SHADOW": "neutral", "ACQUIRE": "info", "VERIFY": "info",
             "REVIEW": "warn", "HOLD": "bad"}
@@ -301,7 +304,7 @@ def build(page_id):
     current = ' aria-current="page"'
     nav = "".join(
         f'<a href="{PAGES[pid][1]}"{current if pid == page_id else ""}>{label}</a>'
-        for pid, label in NAV)
+        for pid, label in NAV if (ROOT / PAGES[pid][0]).exists())
     css = (CSS.replace("__A__", acc).replace("__AS__", acc_soft)
               .replace("__DA__", dacc).replace("__DAS__", dacc_soft))
     content = f"""<div class="wrap">
@@ -339,6 +342,9 @@ def main():
     ap.add_argument("--fragment", help="also write skeleton-free fragments to this directory")
     args = ap.parse_args()
     for page_id in PAGES:
+        if not (ROOT / PAGES[page_id][0]).exists():
+            print("skipped", PAGES[page_id][0], "(not written yet)")
+            continue
         out, full, fragment = build(page_id)
         (ROOT / out).write_text(full, encoding="utf-8")
         print("wrote", ROOT / out)
