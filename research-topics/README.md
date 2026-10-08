@@ -12,6 +12,8 @@
 
 ---
 
+> **Decision (8 October 2026):** the final topic combines Topic 2 with Topic 1's decision gate and adds carrier-commitment fidelity, which covers carriers leaving cargo at non-destination ports. The full write-up is in [final_topic_when_the_data_lies.md](final_topic_when_the_data_lies.md) (also as `.html`). This page keeps the original three-topic comparison for reference.
+
 ## 1. The three topics in one paragraph each
 
 **Topic 1 · Know When Not to Act** ([md](topic1_fidelity_gated_autonomy.md) · [html](topic1_fidelity_gated_autonomy.html)).
