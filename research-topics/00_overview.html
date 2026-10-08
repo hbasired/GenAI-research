@@ -151,7 +151,7 @@ footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var
 </head>
 <body>
 <div class="wrap">
-<nav class="pagenav" aria-label="Topic pages"><a href="00_overview.html" aria-current="page">Shortlist</a><a href="topic1_fidelity_gated_autonomy.html">1 · Know When Not to Act</a><a href="topic2_spoof_resilient_logistics.html">2 · When the Data Lies</a><a href="topic3_verified_traceability.html">3 · Prove It Before It Ships</a></nav>
+<nav class="pagenav" aria-label="Topic pages"><a href="final_topic_when_the_data_lies.html">Final topic</a><a href="00_overview.html" aria-current="page">Shortlist</a><a href="topic1_fidelity_gated_autonomy.html">1 · Know When Not to Act</a><a href="topic2_spoof_resilient_logistics.html">2 · When the Data Lies</a><a href="topic3_verified_traceability.html">3 · Prove It Before It Ships</a></nav>
 <header class="masthead">
 <p class="eyebrow">Topic selection · Data fidelity × agentic AI in logistics</p>
 <h1>Choosing the Research Topic</h1>
@@ -161,6 +161,9 @@ footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var
 <div class="layout">
 <aside class="toc"><details open><summary>Contents</summary><ol><li><a href="#1-the-three-topics-in-one-paragraph-each">1. The three topics in one paragraph each</a></li><li><a href="#2-scorecard">2. Scorecard</a></li><li><a href="#3-recommendation">3. Recommendation</a></li><li><a href="#4-how-your-google-search-ideas-ad-map-onto-the-topics">4. How your Google-search ideas A–D map onto the topics</a></li><li><a href="#5-what-i-checked-in-your-chatgpt-dossier">5. What I checked in your ChatGPT dossier</a></li><li><a href="#6-recent-technologies-and-where-each-one-fits">6. Recent technologies and where each one fits</a></li><li><a href="#7-shared-open-source-stack-on-one-dgx-spark">7. Shared open-source stack on one DGX Spark</a></li><li><a href="#8-what-will-not-break-in-production-means-in-practice">8. What &quot;will not break in production&quot; means in practice</a></li><li><a href="#9-venues-and-open-calls">9. Venues and open calls</a></li><li><a href="#10-next-steps">10. Next steps</a></li><li><a href="#11-verification-log">11. Verification log</a></li></ol></details></aside>
 <article>
+<blockquote>
+<p><strong>Decision (8 October 2026):</strong> the final topic combines Topic 2 with Topic 1's decision gate and adds carrier-commitment fidelity, which covers carriers leaving cargo at non-destination ports. The full write-up is in <a href="final_topic_when_the_data_lies.md">final_topic_when_the_data_lies.md</a> (also as <code>.html</code>). This page keeps the original three-topic comparison for reference.</p>
+</blockquote>
 <h2 id="1-the-three-topics-in-one-paragraph-each">1. The three topics in one paragraph each</h2>
 <p><strong>Topic 1 · Know When Not to Act</strong> (<a href="topic1_fidelity_gated_autonomy.html">md</a> · <a href="topic1_fidelity_gated_autonomy.html">html</a>).
 Supply-chain agents now act on their own: rebooking, rerouting, expediting, reordering. They trust whatever feed they get, and feeds are often stale, duplicated or contradictory. One bad data point can set off a chain of actions across connected agents. The topic builds a <strong>gate</strong> that decides, for each proposed action, whether the evidence is good enough <em>for that action</em>, with thresholds that tighten when an error would spread further through the network, and with a statistical guarantee on the rate of harmful actions. Product: <strong>FidelityGate</strong>, a trust layer between data feeds and any agent.</p>
