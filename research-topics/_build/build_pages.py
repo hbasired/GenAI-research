@@ -86,7 +86,8 @@ CSS = """
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body);
   font-size: 17px; line-height: 1.62; -webkit-text-size-adjust: 100%; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 64px; }
-a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; overflow-wrap: anywhere; }
+article p, article li, article td, article blockquote { overflow-wrap: break-word; }
 a:hover { text-decoration-thickness: 2px; }
 a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 
@@ -275,10 +276,29 @@ def postprocess(body, page_id):
     return link_fix(body)
 
 
+LIST_ITEM = re.compile(r"^(\s*)([-*+]|\d+\.)\s")
+
+
+def loosen_lists(text):
+    """Python-Markdown needs a blank line between a paragraph and a list that follows it."""
+    out, fence = [], False
+    for line in text.split("\n"):
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        prev = out[-1] if out else ""
+        if (not fence and LIST_ITEM.match(line) and prev.strip()
+                and not LIST_ITEM.match(prev) and not prev.startswith(("|", ">", "#", "    "))
+                and not prev.startswith(" ")):
+            out.append("")
+        out.append(line)
+    return "\n".join(out)
+
+
 def build(page_id):
     src, out, page_title, eyebrow, acc, acc_soft, dacc, dacc_soft = PAGES[page_id]
     text = (ROOT / src).read_text(encoding="utf-8")
     title, dek, fields, body_md = split_header(text)
+    body_md = loosen_lists(body_md)
     md = markdown.Markdown(extensions=["tables", "fenced_code", "toc", "sane_lists", "attr_list"],
                            extension_configs={"toc": {"toc_depth": "2"}})
     body = postprocess(md.convert(body_md), page_id)

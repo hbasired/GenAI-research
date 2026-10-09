@@ -43,7 +43,8 @@
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body);
   font-size: 17px; line-height: 1.62; -webkit-text-size-adjust: 100%; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 64px; }
-a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; overflow-wrap: anywhere; }
+article p, article li, article td, article blockquote { overflow-wrap: break-word; }
 a:hover { text-decoration-thickness: 2px; }
 a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 
@@ -317,16 +318,20 @@ footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var
 </ul>
 <p><strong>Definition 1 (Claim fidelity).</strong> For a claim c, F(c) is the probability that c is true given the graph, estimated from rule outcomes, corroboration by independent evidence and issuer history. A declaration's fidelity is bounded below by the union bound over the claims it relies on (as in Topic 1), so a single weak link is visible.</p>
 <p><strong>Definition 2 (Price of privacy).</strong> For fault type f and privacy mode m, PoP(f, m) = Recall_full(f) − Recall_m(f), measured at a fixed false-alarm rate.</p>
-<p><strong>Filing decision.</strong> For lot ℓ with options {actual, default, acquire, block}:
-- cost(actual) = p_c · E_actual + P(non-compliance | F) · Penalty
-- cost(default) = p_c · E_default
-- cost(acquire) = cost of evidence + delay cost + expected cost after re-assessment
-- cost(block) = lost margin.</p>
+<p><strong>Filing decision.</strong> For lot ℓ with options {actual, default, acquire, block}:</p>
+<ul>
+<li>cost(actual) = p_c · E_actual + P(non-compliance | F) · Penalty</li>
+<li>cost(default) = p_c · E_default</li>
+<li>cost(acquire) = cost of evidence + delay cost + expected cost after re-assessment</li>
+<li>cost(block) = lost margin.</li>
+</ul>
 <p>Here p_c is the carbon price (CBAM) or zero (EUDR, where only the penalty term applies). The paper derives the threshold on F above which filing actual data is cheaper, and tests it on the benchmark. This gives a direct answer to "what is good supplier data worth?"</p>
-<p><strong>Privacy mechanisms, in order of complexity.</strong>
-1. Supplier-side verifier issues a W3C VC 2.0 / UNTP conformity credential stating which rules passed; selective disclosure (SD-JWT or BBS signatures) reveals only needed fields.
-2. Cross-tier mass balance with additively homomorphic commitments and range proofs, so each tier proves Σ out ≤ Σ in without revealing quantities.
-3. Federated learning (Flower with secure aggregation) to train anomaly models across suppliers without pooling data.</p>
+<p><strong>Privacy mechanisms, in order of complexity.</strong></p>
+<ol>
+<li>Supplier-side verifier issues a W3C VC 2.0 / UNTP conformity credential stating which rules passed; selective disclosure (SD-JWT or BBS signatures) reveals only needed fields.</li>
+<li>Cross-tier mass balance with additively homomorphic commitments and range proofs, so each tier proves Σ out ≤ Σ in without revealing quantities.</li>
+<li>Federated learning (Flower with secure aggregation) to train anomaly models across suppliers without pooling data.</li>
+</ol>
 <p>Start with mechanism 1; mechanisms 2 and 3 are extensions if time allows.</p>
 <h2 id="7-graph-design">7. Graph design</h2>
 <figure class="diagram"><pre class="mermaid">flowchart LR
