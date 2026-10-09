@@ -13,6 +13,13 @@
 ---
 
 > **Decision (8 October 2026):** the final topic combines Topic 2 with Topic 1's decision gate and adds carrier-commitment fidelity, which covers carriers leaving cargo at non-destination ports. The full write-up is in [final_topic_when_the_data_lies.md](final_topic_when_the_data_lies.md) (also as `.html`). This page keeps the original three-topic comparison for reference.
+>
+> **Corrections (9 October 2026).** Some statements on this page and in the three topic documents were later downgraded or corrected in the final topic document (Section 23). Where they differ, the final document is the one to follow:
+> - The "61% of Hormuz transits were jamming artifacts" figure comes from one unaudited column with no second source. Do not use it as a headline.
+> - The USD 725M figure is Verisk CargoNet's estimate of *all* US and Canada cargo-theft losses in 2025, which the FBI quotes. It is not a measure of cyber-enabled theft only.
+> - The Qwen3.5 weight licence has not been verified. Apache-2.0 is confirmed for gpt-oss and Qwen3, which are the defaults until it is.
+> - Jev's 70–500 ms latency comes from one third-party article and is unverified. We found no official latency figure or independent benchmark.
+> - RLM-Qwen3-8B is described in several summaries of the paper's revised version, but we have not read the arXiv page itself.
 
 ## 1. The three topics in one paragraph each
 

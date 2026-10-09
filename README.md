@@ -4,7 +4,7 @@ Research workspace for choosing and developing a Q1-publishable topic on how dat
 
 ## Start here
 
-- **Final topic:** [When the Data Lies](research-topics/final_topic_when_the_data_lies.md): fidelity-gated, spoof-resilient AI agents for location, identity and carrier-commitment evidence in maritime and freight logistics (also as `.html`).
+- **Final topic:** [When the Data Lies](research-topics/final_topic_when_the_data_lies.md): fidelity-gated, spoof-resilient AI agents for location, identity and carrier-commitment evidence in maritime and freight logistics (also as `.html`). A one-page [brief](research-topics/final_topic_brief.md) gives the topic, problem and plan in short form.
 - [`research-topics/README.md`](research-topics/README.md): overview, scorecard and recommendation across the three candidate topics that led to the final choice (also as `research-topics/00_overview.html`).
 - [Topic 1 · Know When Not to Act](research-topics/topic1_fidelity_gated_autonomy.md): decision-aware data fidelity and risk-gated autonomy.
 - [Topic 2 · When the Data Lies](research-topics/topic2_spoof_resilient_logistics.md): spoof-resilient agents for location and identity fidelity.

@@ -16,6 +16,8 @@
 
 ---
 
+> **Superseded (9 October 2026).** This candidate topic was merged into the [final topic](final_topic_when_the_data_lies.md). Some figures and licence statements here were later corrected or downgraded; see the corrections box in the [overview](README.md) and Section 23 of the final document before reusing anything from this page.
+
 ## 1. The problem in plain words
 
 From 2026, many goods cannot enter or be sold in the EU unless the company can **prove** facts about where and how they were made:
