@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Know When Not to Act</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: consignment-note masthead (label/value grid), then a sticky contents rail beside a ~70ch reading column */
+:root {
+  --paper: #F3F5F3; --surface: #FFFFFF; --ink: #18232C; --muted: #56636D;
+  --rule: #D3DBD7; --tint: #E8EEEB; --code-bg: #EEF2F0;
+  --accent: #0E6B6F; --accent-soft: #DCEDEC;
+  --ok: #23704A; --ok-soft: #DDEFE4; --warn: #8A5A00; --warn-soft: #F6EBD3;
+  --bad: #A3342A; --bad-soft: #F6E0DD; --neutral: #4D5A63; --neutral-soft: #E4E9EC;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 70ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+    --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+    --accent: #5CC0C0; --accent-soft: #12393B;
+    --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+    --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1417; --surface: #161C20; --ink: #E2E8EA; --muted: #9AA6AE;
+  --rule: #2A353B; --tint: #1B2327; --code-bg: #1A2125;
+  --accent: #5CC0C0; --accent-soft: #12393B;
+  --ok: #7FD1A2; --ok-soft: #173326; --warn: #E8B860; --warn-soft: #3A2C10;
+  --bad: #F09A8F; --bad-soft: #3D1C18; --neutral: #B4C0C7; --neutral-soft: #242E34;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body);
+  font-size: 17px; line-height: 1.62; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 64px; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; overflow-wrap: anywhere; }
+article p, article li, article td, article blockquote { overflow-wrap: break-word; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.pagenav { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-block: 14px; border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui); font-size: 0.86rem; }
+.pagenav a { color: var(--muted); text-decoration: none; }
+.pagenav a:hover { color: var(--ink); }
+.pagenav a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--accent); }
+
+.masthead { padding-block: 36px 28px; display: grid; gap: 18px; }
+.eyebrow { font-family: var(--font-ui); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent); margin: 0; }
+.masthead h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 6vw, 4.1rem);
+  line-height: 0.98; letter-spacing: 0.005em; margin: 0; text-wrap: balance; text-transform: uppercase; }
+.dek { font-style: italic; font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--muted); margin: 0; max-width: 60ch; }
+.manifest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1.5px solid var(--ink);
+  background: var(--rule); margin-top: 8px; }
+.manifest .cell { padding: 10px 14px 12px; background: var(--surface); min-width: 0; }
+.manifest .cell.wide { grid-column: 1 / -1; }
+.manifest .label { display: block; font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.manifest .value { font-family: var(--font-ui); font-size: 0.98rem; line-height: 1.45; overflow-wrap: anywhere; }
+.manifest .value p { margin: 0; }
+.manifest .value strong { color: var(--accent); }
+
+.layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; align-items: start; margin-top: 12px; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); font-family: var(--font-ui);
+  font-size: 0.88rem; max-height: calc(100vh - 32px); overflow-y: auto; padding-block: 18px; }
+.toc details > summary { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; list-style: none; margin-bottom: 10px; }
+.toc details > summary::-webkit-details-marker { display: none; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; border-left: 1px solid var(--rule); }
+.toc li a { display: block; padding: 4px 0 4px 12px; color: var(--muted); text-decoration: none; line-height: 1.3;
+  margin-left: -1px; border-left: 2px solid transparent; }
+.toc li a:hover { color: var(--ink); border-left-color: var(--accent); }
+
+article { min-width: 0; padding-block: 8px; }
+article > * { max-width: var(--measure); }
+article > .table-wrap, article > figure, article > pre { max-width: 100%; }
+article h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1.1;
+  letter-spacing: 0.01em; text-transform: uppercase; margin: 2.6rem 0 0.9rem; padding-top: 0.9rem;
+  border-top: 2px solid var(--ink); text-wrap: balance; scroll-margin-top: 16px; }
+article h2:first-child { margin-top: 0.4rem; }
+article h3 { font-family: var(--font-ui); font-weight: 600; font-size: 1.15rem; margin: 1.8rem 0 0.5rem; }
+article p, article li { text-wrap: pretty; }
+article p { margin: 0 0 1rem; }
+article ul, article ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+article li { margin-bottom: 0.35rem; }
+article strong { font-weight: 600; }
+article hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+article em { font-style: italic; }
+article blockquote { margin: 1rem 0; padding: 10px 16px; background: var(--accent-soft); border-radius: 4px; }
+
+.table-wrap { overflow-x: auto; margin: 0.6rem 0 1.4rem; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-family: var(--font-ui); font-size: 0.93rem; line-height: 1.45;
+  font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+thead th { background: var(--tint); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 500; }
+td code, li code, p code { font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+pre { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.5; background: var(--code-bg); color: var(--ink);
+  padding: 14px 16px; border-radius: 4px; overflow-x: auto; margin: 0.6rem 0 1.4rem; }
+pre code { background: none; padding: 0; }
+
+figure.diagram { margin: 0.8rem 0 1.6rem; padding: 16px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; overflow-x: auto; }
+figure.diagram pre.mermaid { background: none; margin: 0; padding: 0; text-align: center; white-space: pre; }
+figure.diagram figcaption { font-family: var(--font-ui); font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+
+.chip { display: inline-block; font-family: var(--font-ui); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.08em;
+  padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.warn { color: var(--warn); background: var(--warn-soft); }
+.chip.bad { color: var(--bad); background: var(--bad-soft); }
+.chip.info { color: var(--accent); background: var(--accent-soft); }
+.chip.neutral { color: var(--neutral); background: var(--neutral-soft); }
+
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 8px; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); display: inline-block; }
+.pips i.on { background: var(--accent); }
+td.score { white-space: nowrap; }
+
+footer.colophon { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font-family: var(--font-ui);
+  font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .toc { position: static; max-height: none; padding-block: 8px; border: 1px solid var(--rule); border-radius: 4px;
+    padding-inline: 14px; background: var(--surface); }
+  .toc details > summary { margin-bottom: 0; }
+  .toc details[open] > summary { margin-bottom: 10px; }
+}
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .manifest { grid-template-columns: minmax(0, 1fr); }
+  article h2 { font-size: 1.6rem; }
+  td:first-child { min-width: 8.5rem; }
+  .pips { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="pagenav" aria-label="Topic pages"><a href="final_topic_when_the_data_lies.html">Final topic</a><a href="00_overview.html">Shortlist</a><a href="topic1_fidelity_gated_autonomy.html" aria-current="page">1 · Know When Not to Act</a><a href="topic2_spoof_resilient_logistics.html">2 · When the Data Lies</a><a href="topic3_verified_traceability.html">3 · Prove It Before It Ships</a></nav>
+<header class="masthead">
+<p class="eyebrow">Research topic 1 of 3 · Decision-aware fidelity</p>
+<h1>Know When Not to Act</h1>
+<p class="dek">Decision-aware data fidelity and risk-gated autonomy for supply-chain AI agents</p>
+<div class="manifest"><div class="cell wide"><span class="label">Working title</span><div class="value">Know When Not to Act: Decision-Weighted Data Fidelity and Blast-Radius-Aware Gating for Autonomous Supply-Chain Agents</div></div><div class="cell"><span class="label">Problem owner</span><div class="value">Control-tower and exception-management teams at shippers, 3PLs and freight forwarders</div></div><div class="cell"><span class="label">Core question</span><div class="value">Is this evidence good enough for <em>this</em> action, right now?</div></div><div class="cell wide"><span class="label">Covers your ideas</span><div class="value">A (cascading failures), B (neurosymbolic checks), part of D (spoofed inputs)</div></div><div class="cell wide"><span class="label">Recent tech used</span><div class="value">Recursive Language Models (RLM), typed "System One" decisions (Jev or an open equivalent), BullMQ, bi-temporal knowledge graphs, conformal risk control</div></div><div class="cell wide"><span class="label">Data</span><div class="value">Open only: NOAA and Danish AIS, BTS FAF, OpenStreetMap, NOAA weather, synthetic GS1 EPCIS 2.0 events, Beer Game simulators</div></div><div class="cell"><span class="label">Compute</span><div class="value">One DGX Spark (128 GB) is enough</div></div><div class="cell"><span class="label">Product</span><div class="value"><strong>FidelityGate</strong>: a trust layer that sits between data feeds and any AI agent</div></div><div class="cell wide"><span class="label">Best-fit venues</span><div class="value">IJPR, EJOR, Decision Support Systems, Transportation Research Part E, Omega; benchmark paper at NeurIPS Datasets &amp; Benchmarks</div></div></div>
+</header>
+<div class="layout">
+<aside class="toc"><details open><summary>Contents</summary><ol><li><a href="#1-the-problem-in-plain-words">1. The problem in plain words</a></li><li><a href="#2-why-this-matters-now">2. Why this matters now</a></li><li><a href="#3-how-we-would-solve-it-plain-words">3. How we would solve it (plain words)</a></li><li><a href="#4-what-already-exists-and-what-you-can-reuse">4. What already exists (and what you can reuse)</a></li><li><a href="#5-the-gap-and-the-novelty">5. The gap and the novelty</a></li><li><a href="#6-formal-model-for-reviewers">6. Formal model (for reviewers)</a></li><li><a href="#7-graph-design">7. Graph design</a></li><li><a href="#8-system-architecture">8. System architecture</a></li><li><a href="#9-research-questions-and-hypotheses">9. Research questions and hypotheses</a></li><li><a href="#10-benchmark-fidelitychain-bench">10. Benchmark: FidelityChain-Bench</a></li><li><a href="#11-experiments-baselines-and-metrics">11. Experiments, baselines and metrics</a></li><li><a href="#12-compute-plan-one-dgx-spark">12. Compute plan (one DGX Spark)</a></li><li><a href="#13-product-fidelitygate">13. Product: FidelityGate</a></li><li><a href="#14-risks-and-how-to-handle-them">14. Risks and how to handle them</a></li><li><a href="#15-twelve-month-plan">15. Twelve-month plan</a></li><li><a href="#16-papers-you-can-get-from-this-topic">16. Papers you can get from this topic</a></li><li><a href="#17-sources">17. Sources</a></li></ol></details></aside>
+<article>
+<h2 id="1-the-problem-in-plain-words">1. The problem in plain words</h2>
+<p>Supply-chain software is moving from <strong>recommending</strong> to <strong>acting</strong>. AI agents now rebook freight, reroute trucks, expedite orders, change safety stock and message customers on their own. They act on whatever data feed they are given, and in logistics that data is often wrong in quiet ways. A GPS ping is three hours old. Two systems disagree on whether a container was discharged. A "delivered" status was sent before the truck arrived. A unit changed from cases to pallets in one system but not the other.</p>
+<p>A human planner usually notices that something "looks off" and picks up the phone. An agent does not. It acts at machine speed, and when several agents are connected, one bad data point can set off a chain of actions.</p>
+<p><strong>A realistic example.</strong> At 14:05 a truck enters a mountain pass with no signal. The visibility feed shows "no movement for 3 hours". The ETA agent predicts a 6-hour delay. The exception agent books an expedited replacement shipment. The inventory agent raises safety stock for the next two weeks. The customer agent warns the retailer, and the retailer's own agent cancels a promotion. The truck arrives on time. Every agent behaved "correctly" given the data it saw. The data was stale, and nothing in the chain asked whether it was good enough to act on.</p>
+<p><strong>What is missing today.</strong> Companies check data quality at the dataset level (is the table complete, are the formats valid). Nobody checks it at the <strong>decision</strong> level: is this specific evidence reliable enough for this specific action, given how costly a mistake would be? So firms either keep a human in the loop for everything, which removes the return on investment, or let agents run and accept the risk.</p>
+<p><strong>Who loses money.</strong> Shippers and 3PLs pay for unnecessary expedites, wrong reroutes and excess inventory. Customers receive false alarms. Teams lose trust in automation and switch it off.</p>
+<h2 id="2-why-this-matters-now">2. Why this matters now</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What it says</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Autonomy is the stated direction</td>
+<td>Gartner predicts 60% of supply-chain disruptions will be resolved <strong>without human intervention by 2031</strong> (press release, 18 March 2026).</td>
+<td><a href="https://www.gartner.com/en/newsroom/press-releases/2026-03-18-gartner-predicts-60-percent-of-supply-chain-disruptions-will-be-resolved-without-human-intervention-by-2031">Gartner 2026</a></td>
+</tr>
+<tr>
+<td>Data is the bottleneck</td>
+<td>Gartner's research note <em>What Agentic AI Demands From Your Supply Chain Data Strategy</em> says agentic AI exacerbates data fragmentation and asks for "Connected, Contextualized, Continuous" data to "prevent machine-speed operational failures".</td>
+<td><a href="https://www.gartner.com/en/documents/8141429">Gartner research note</a></td>
+</tr>
+<tr>
+<td>ROI is not arriving</td>
+<td>BCG's 2026 survey of 30 large logistics players: 97% call AI a strategic priority, only 13% see measurable financial impact. BCG names fragmented data as the first of three causes.</td>
+<td><a href="https://www.bcg.com/publications/2026/why-ai-isnt-delivering-roi-logistics">BCG 2026</a></td>
+</tr>
+<tr>
+<td>Industry is shipping agents</td>
+<td>DHL's Logistics Trend Radar 8.0 (24 Sept 2026) adds Agentic AI as a new high-impact trend. project44 launched a portfolio of six agents, including "AI Data Quality Agents"; FourKites launched agentic "digital workers".</td>
+<td><a href="https://group.dhl.com/en/media-relations/press-releases-teaser/2026/dhl-logistics-trend-radar-8.html">DHL LTR 8.0</a>, <a href="https://resources.rework.com/tools/ai-agents/best-ai-agents-for-supply-chain-2026">agent round-up</a></td>
+</tr>
+<tr>
+<td>Feeds can be badly wrong</td>
+<td>In August 2026, an analysis of Strait of Hormuz AIS data found 393 of 642 logged transits (61%) were artifacts of GPS jamming, not real ships.</td>
+<td><a href="https://timewell.jp/en/columns/hormuz-strait-transit-data-analysis">Hormuz transit analysis</a></td>
+</tr>
+<tr>
+<td>Agents amplify instability</td>
+<td>A May 2026 MIT/Harvard study of LLM agents in the Beer Game names the "agent bullwhip": run-to-run decision instability that amplifies across echelons even with a fixed demand path.</td>
+<td><a href="https://arxiv.org/abs/2605.17036">Long et al. 2026</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3-how-we-would-solve-it-plain-words">3. How we would solve it (plain words)</h2>
+<p>Put a <strong>gate</strong> between the data and every action an agent wants to take. For each proposed action, the gate asks five questions:</p>
+<ol>
+<li><strong>Is the evidence fresh enough?</strong> A 3-hour-old ping is fine for a weekly forecast and useless for a 30-minute dock decision.</li>
+<li><strong>Do independent sources agree?</strong> Two feeds that copy the same upstream system count as one source, not two. The gate uses a graph of where each data point came from to tell the difference.</li>
+<li><strong>Is it physically and commercially possible?</strong> A truck cannot do 400 km in an hour; a 40-ft container cannot hold 90 tonnes; a driver cannot exceed legal hours. Hard rules from operations research check this, not the LLM.</li>
+<li><strong>How bad is it if we are wrong, and how far would the error spread?</strong> The gate looks at the dependency graph: an expedite that triggers re-planning at five downstream sites needs stronger evidence than a customer notification.</li>
+<li><strong>Can we cheaply get better evidence?</strong> If the answer is unclear, the gate asks for more data first (re-ping the device, check the port system, ask the carrier) and only then decides.</li>
+</ol>
+<p>The gate then returns one of five verdicts:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Verdict</th>
+<th>Meaning</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="chip ok">ACT</span></td>
+<td>Execute automatically</td>
+<td>High-fidelity evidence, low blast radius</td>
+</tr>
+<tr>
+<td><span class="chip neutral">SHADOW</span></td>
+<td>Simulate and log, do not execute</td>
+<td>New action types, models under evaluation</td>
+</tr>
+<tr>
+<td><span class="chip info">ACQUIRE</span></td>
+<td>Fetch more evidence, then re-assess</td>
+<td>Sources disagree but a cheap check exists</td>
+</tr>
+<tr>
+<td><span class="chip warn">REVIEW</span></td>
+<td>Send to a human with the evidence pack</td>
+<td>High stakes, unresolved conflict</td>
+</tr>
+<tr>
+<td><span class="chip bad">HOLD</span></td>
+<td>Do nothing yet, re-check on a timer</td>
+<td>Evidence is stale and no quick check exists</td>
+</tr>
+</tbody>
+</table></div>
+<p>The research contribution is to make this gate <strong>principled and measurable</strong>: a formal definition of fidelity relative to the action, thresholds with statistical guarantees, and a benchmark that shows how much harm the gate prevents and how much autonomy it keeps.</p>
+<h2 id="4-what-already-exists-and-what-you-can-reuse">4. What already exists (and what you can reuse)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Research stream</th>
+<th>Key recent work</th>
+<th>What it solved</th>
+<th>What is still open</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM agents in multi-echelon supply chains</td>
+<td>Long, Simchi-Levi et al., <em>Reliability and Effectiveness of Autonomous AI Agents in SCM</em> (<a href="https://arxiv.org/abs/2605.17036">arXiv 2605.17036</a>, May 2026); Jannelli, Brintrup et al., consensus-seeking agents (<a href="https://arxiv.org/abs/2411.10184">arXiv 2411.10184</a>)</td>
+<td>Agents can beat humans in the Beer Game; "agent bullwhip"; GRPO post-training reduces tail events</td>
+<td>Data is assumed clean. The instability studied comes from the model, not from corrupted evidence.</td>
+</tr>
+<tr>
+<td>Autonomy governance</td>
+<td><em>Agentic AI Autonomy Assessment</em> (AAAA), SDU/Sherbrooke/CBS (<a href="https://arxiv.org/abs/2607.25405">arXiv 2607.25405</a>, July 2026)</td>
+<td>Task-level autonomy measure; upstream tiers gain from autonomy, downstream tiers are harmed</td>
+<td>Measures how much autonomy exists, not when evidence justifies it.</td>
+</tr>
+<tr>
+<td>Error cascades in multi-agent LLM systems</td>
+<td><em>From Spark to Fire</em> (<a href="https://arxiv.org/abs/2603.04474">arXiv 2603.04474</a>, 2026); <em>Hallucination Cascade</em> (<a href="https://arxiv.org/abs/2606.07937">arXiv 2606.07937</a>, 2026)</td>
+<td>One false "atom" spreads into system-wide false consensus; a genealogy-graph governance layer blocks most infections</td>
+<td>Generic text tasks; no physical-world data, no operational cost, no action gating.</td>
+</tr>
+<tr>
+<td>Provenance and trust in agent pipelines</td>
+<td><em>From Agent Traces to Trust</em> survey (<a href="https://arxiv.org/abs/2606.04990">arXiv 2606.04990</a>); <em>Correct Is Not Governed</em> (<a href="https://arxiv.org/abs/2608.12761">arXiv 2608.12761</a>); <em>Silence Is Endorsement</em> (<a href="https://arxiv.org/abs/2609.20211">arXiv 2609.20211</a>)</td>
+<td>Verification status gets "laundered" when it is dropped between agents; deterministic provenance layers help</td>
+<td>Not tied to supply-chain data or to cost-aware decisions.</td>
+</tr>
+<tr>
+<td>Agent robustness to noise</td>
+<td><em>AgentNoiseBench</em> (<a href="https://arxiv.org/abs/2602.11348">arXiv 2602.11348</a>, 2026)</td>
+<td>Noise injected mid-trajectory hurts most</td>
+<td>Generic tool noise; no domain constraints or consequences.</td>
+</tr>
+<tr>
+<td>Supply-chain LLM benchmarks</td>
+<td><em>SupChain-Bench</em> (Findings of ACL 2026, <a href="https://aclanthology.org/2026.findings-acl.371/">link</a>); <em>RetailBench</em>; <em>E-Commerce Bench</em></td>
+<td>Long-horizon SOP and tool orchestration is still unreliable</td>
+<td>Clean inputs; no controlled data corruption.</td>
+</tr>
+<tr>
+<td>Supply-chain knowledge graphs</td>
+<td><em>Helicase</em> (<a href="https://arxiv.org/abs/2605.26835">arXiv 2605.26835</a>, Brintrup group, 2026); KG + LLM visibility (<a href="https://doi.org/10.1080/00207543.2025.2575841">IJPR 2025</a>)</td>
+<td>Per-fact uncertainty on extracted supply-network facts</td>
+<td>Discovery of the network, not gating of operational actions.</td>
+</tr>
+<tr>
+<td>Neurosymbolic logistics planning</td>
+<td><em>Foundation Models for Logistics: certifiable conversational planning</em> (<a href="https://arxiv.org/abs/2507.11352">arXiv 2507.11352</a>); <em>OptiRepair</em> (<a href="https://arxiv.org/abs/2602.19439">arXiv 2602.19439</a>)</td>
+<td>LLM + solver with uncertainty-triggered clarification</td>
+<td>Checks the user's intent, not the fidelity of incoming operational data.</td>
+</tr>
+<tr>
+<td>Selective prediction and abstention</td>
+<td>Chow's reject rule (1970); conformal risk control (Angelopoulos et al., ICLR 2024); CAP conformal abstention (<a href="https://proceedings.mlr.press/v304/tayebati26a.html">PMLR v304</a>)</td>
+<td>Abstain-or-answer with guarantees for single predictions</td>
+<td>Not extended to multi-action, multi-agent, cost-asymmetric operations.</td>
+</tr>
+<tr>
+<td>Long-context reasoning</td>
+<td>Recursive Language Models (Zhang, Kraska, Khattab, <a href="https://arxiv.org/abs/2512.24601">arXiv 2512.24601</a>); RLM-Qwen3-8B; <code>dspy.RLM</code></td>
+<td>Treat long inputs as an environment the model explores with code and sub-calls</td>
+<td>Not applied to operational evidence histories.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Reusable building blocks:</strong> the Beer Game environments from the agent-bullwhip work, AgentNoiseBench's injection idea, the Helicase uncertainty layers, Graphiti's bi-temporal graph, the RLM library, and conformal-prediction libraries.</p>
+<h2 id="5-the-gap-and-the-novelty">5. The gap and the novelty</h2>
+<p>No published work, as of October 2026, connects <strong>corrupted operational evidence → agent belief → action → network consequence</strong> and controls that chain with a decision-aware gate that has guarantees. Five contributions make the paper distinct:</p>
+<ol>
+<li><strong>Decision-Weighted Data Fidelity (DWDF).</strong> Fidelity is defined for a pair (evidence, action), not for a dataset. The same evidence can be fit for "notify customer" and unfit for "book air freight".</li>
+<li><strong>Blast-radius-aware thresholds.</strong> The bar an action must clear grows with the downstream harm it can trigger, computed on the supply-network dependency graph. This turns Topic A (cascades) into a design rule.</li>
+<li><strong>Fidelity envelopes between agents.</strong> Every inter-agent message carries its fidelity, provenance and verification status. A composition rule ensures fidelity can only fall along a pipeline unless new independent evidence is added, which blocks "verification-status laundering".</li>
+<li><strong>Value-of-information evidence acquisition with RLM.</strong> When the gate is unsure, an RLM program searches the long event history and live sources for the cheapest evidence that would change the decision.</li>
+<li><strong>FidelityChain-Bench.</strong> An open benchmark with versioned corruption operators, simulator ground truth and cost-based scoring, so any agent can be tested on bad data.</li>
+</ol>
+<p>A sixth, smaller contribution: an <strong>open "System One" gate</strong>, a small open model that returns typed, calibrated decisions in well under a second, compared against TypeSafe's proprietary Jev where access is available.</p>
+<h2 id="6-formal-model-for-reviewers">6. Formal model (for reviewers)</h2>
+<p><strong>Setting.</strong> At time <em>t</em> the agent sees an evidence packet <em>E</em> (a set of source-stamped assertions) about a latent true state <em>S</em>. It proposes an action <em>a</em> with operational loss <em>L(a, S)</em>. Let <em>a*(S)</em> be the best action under the true state and <em>δ_a</em> a tolerance.</p>
+<p><strong>Definition 1 (Decision-weighted fidelity).</strong>
+F(E, a) = P( L(a, S) − L(a*(S), S) ≤ δ_a | E ).
+This is the probability that acting on this evidence will not cause harm beyond tolerance.</p>
+<p><strong>Definition 2 (Blast radius).</strong> On the dependency graph <em>G</em> (sites, lanes, orders, agents), a wrong action at node <em>i</em> causes local harm <em>h_i</em> and triggers downstream harm with propagation probabilities <em>p_ij</em>. The blast-radius multiplier is
+β_i = (1 / h_i) · Σ_{j ∈ Desc(i)} p_ij · h_j.</p>
+<p><strong>Proposition 1 (Optimal gate threshold, to be proven in the paper).</strong> With a calibrated <em>F</em>, a review option of cost <em>r</em> (including delay), and harm cost <em>H_i = h_i (1 + β_i)</em>, the expected-cost-minimising rule is
+ACT if F(E, a) ≥ τ_i* = 1 − r / ( h_i (1 + β_i) ), otherwise REVIEW.
+This generalises Chow's reject rule to cascading operations. Thresholds tighten for actions with a large downstream footprint. The paper extends it to the ACQUIRE option (value of information) and HOLD (delay cost).</p>
+<p><strong>Calibration with guarantees.</strong> The threshold is learned from data with conformal risk control: choose τ̂ so that the expected rate of <em>harmful executed actions</em> stays below a target α per action class, with a finite-sample guarantee under exchangeability. Adaptive conformal inference handles drift over time.</p>
+<p><strong>Definition 3 (Fidelity envelope and composition).</strong> A message carries (claim, F̂, provenance roots, verification status). If a downstream action depends on claims c₁…cₙ, its fidelity is bounded by
+F_down ≥ 1 − Σ_k (1 − F(c_k)),
+a union bound that needs no independence assumption. Fidelity can rise again only when evidence with a new provenance root is added.</p>
+<p><strong>Definition 4 (Fidelity-induced agent bullwhip).</strong> Run the same latent world twice, with clean and with corrupted evidence. FABW is the extra order-variance amplification (or rerouting variance, or tail cost) caused by the corruption alone:
+FABW = ( Var(orders | corrupted) − Var(orders | clean) ) / Var(demand).
+This separates data-caused instability from the model-caused instability already studied in the agent-bullwhip paper.</p>
+<p><strong>Estimating F̂.</strong> A calibrated model over graph and rule features: distinct provenance roots supporting the claim, contradiction density, evidence age relative to process speed, constraint violations, per-source reliability (a Beta posterior updated from outcomes), and the residual against a time-series foundation model forecast. Candidates: gradient boosting, a small graph neural network, TabPFN, and the typed small-model gate.</p>
+<h2 id="7-graph-design">7. Graph design</h2>
+<p>Graphs are the backbone of this topic. A bi-temporal graph records both when a fact was true in the world and when the system learned it, so any past decision can be replayed exactly as the agent saw it.</p>
+<figure class="diagram"><pre class="mermaid">flowchart LR
+  SRC[&quot;Source&lt;br/&gt;(carrier API, GPS, EDI, port)&quot;] --&gt;|emits| AS[&quot;Assertion&lt;br/&gt;(value, time, unit)&quot;]
+  AS --&gt;|about| ENT[&quot;Entity&lt;br/&gt;(shipment, truck, container, site)&quot;]
+  AS --&gt;|derived_from| AS2[&quot;Upstream assertion&quot;]
+  AS --&gt;|contradicts| AS3[&quot;Conflicting assertion&quot;]
+  DEC[&quot;Decision&lt;br/&gt;(action, verdict, F)&quot;] --&gt;|used| AS
+  DEC --&gt;|affects| ENT
+  ENT --&gt;|depends_on| ENT2[&quot;Downstream entity&lt;br/&gt;(order, site, lane)&quot;]
+  AG[&quot;Agent&quot;] --&gt;|proposed| DEC
+</pre></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Graph feature</th>
+<th>How it is computed</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Independent corroboration</td>
+<td>Count distinct provenance roots (graph traversal to ancestors)</td>
+<td>Two feeds that copy one upstream system are one source</td>
+</tr>
+<tr>
+<td>Contradiction density</td>
+<td>Share of <code>contradicts</code> edges in the claim's neighbourhood</td>
+<td>Conflicts predict harm better than noise magnitude</td>
+</tr>
+<tr>
+<td>Path freshness</td>
+<td>Oldest timestamp on the derivation path</td>
+<td>A fresh record built on stale inputs is stale</td>
+</tr>
+<tr>
+<td>Blast radius β</td>
+<td>Weighted descendant sum on the dependency graph</td>
+<td>Sets how strict the gate must be</td>
+</tr>
+<tr>
+<td>Source reliability</td>
+<td>Beta posterior per source, updated from outcomes</td>
+<td>Learns which feeds lie, and when</td>
+</tr>
+<tr>
+<td>Corrupted-node centrality</td>
+<td>Centrality of nodes touched by low-fidelity claims</td>
+<td>Predicts cascade size in multi-agent runs</td>
+</tr>
+</tbody>
+</table></div>
+<p>Tools: <a href="https://github.com/getzep/graphiti">Graphiti</a> (Apache-2.0, bi-temporal edges, MCP server) on Neo4j Community or FalkorDB, or PostgreSQL with Apache AGE and pgvector; PyTorch Geometric for graph models; W3C PROV-O and GS1 EPCIS 2.0 as the vocabularies.</p>
+<h2 id="8-system-architecture">8. System architecture</h2>
+<figure class="diagram"><pre class="mermaid">flowchart LR
+  F[&quot;Feeds&lt;br/&gt;EPCIS events, GPS, AIS, EDI, ERP&quot;] --&gt; I[&quot;Ingest queue&lt;br/&gt;(BullMQ on Valkey)&quot;]
+  I --&gt; G[&quot;Bi-temporal provenance graph&lt;br/&gt;(Graphiti / Postgres + AGE)&quot;]
+  G --&gt; C[&quot;Fidelity signals&lt;br/&gt;rules, OR constraints, TSFM residuals,&lt;br/&gt;source reliability&quot;]
+  A[&quot;Planner agents&lt;br/&gt;(LangGraph or DSPy)&quot;] --&gt;|proposed action| GATE[&quot;FidelityGate&lt;br/&gt;typed decision + conformal threshold&quot;]
+  C --&gt; GATE
+  GATE --&gt;|ACT| X[&quot;Executor&lt;br/&gt;idempotent, two-phase&quot;]
+  GATE --&gt;|ACQUIRE| R[&quot;RLM investigator&lt;br/&gt;+ evidence fetchers&quot;]
+  R --&gt; G
+  GATE --&gt;|REVIEW| H[&quot;Human review queue&quot;]
+  GATE --&gt;|HOLD / SHADOW| S[&quot;Re-check scheduler&lt;br/&gt;and shadow log&quot;]
+  X --&gt; O[&quot;Outcomes&quot;] --&gt; CAL[&quot;Calibration and&lt;br/&gt;source-reliability update&quot;]
+  CAL --&gt; C
+</pre></figure>
+<p><strong>Where the recent technologies fit</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Role in this topic</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recursive Language Models</strong> (<a href="https://arxiv.org/abs/2512.24601">paper</a>, <a href="https://github.com/alexzhang13/rlm">code</a>, <a href="https://dspy.ai/api/modules/RLM/"><code>dspy.RLM</code></a>)</td>
+<td>The ACQUIRE path. The full event history of a shipment (weeks of pings, EDI 214 messages, emails, port events) is loaded as a variable in a sandboxed REPL. The model writes code to filter it and calls sub-models on slices to find the smallest evidence set that confirms or rejects the action.</td>
+<td>Compare against long-context prompting and RAG at equal cost. RLM-Qwen3-8B runs locally.</td>
+</tr>
+<tr>
+<td><strong>Jev / "System One" models</strong> (TypeSafe, released 15 Sept 2026)</td>
+<td>The gate's verdicts are typed choices with probabilities, which is exactly what Jev produces: typed questions over JSON state, calibrated probabilities, reported latency of 70–500 ms.</td>
+<td>Jev is proprietary and API-only, so it is an <strong>optional baseline</strong>. The reproducible core is an open equivalent: a small Qwen3.5 model with grammar-constrained decoding over the verdict enum, probabilities read from token log-probabilities, then calibrated.</td>
+</tr>
+<tr>
+<td><strong>BullMQ</strong> (<a href="https://docs.bullmq.io">docs</a>)</td>
+<td>Real-time backbone: <code>ingest</code>, <code>assess</code> (job ID = idempotency key), <code>acquire</code> (parent-child flows that wait for evidence fetchers with timeouts), <code>review</code> (human queue with SLA), <code>execute</code> (rate-limited per carrier API), <code>recheck</code> (job schedulers for HOLD), dead-letter queues.</td>
+<td>Runs on Valkey (BSD) or Redis 6.2+. Node, Python, Rust, Elixir and PHP clients; check Python feature parity (deduplication arrived later in the Python client).</td>
+</tr>
+<tr>
+<td><strong>Bi-temporal knowledge graphs</strong> (Graphiti / Zep)</td>
+<td>Evidence memory with replay "as of" any time</td>
+<td>Peer-reviewed results on agent memory; Apache-2.0</td>
+</tr>
+<tr>
+<td><strong>Conformal risk control</strong> (MAPIE, crepes)</td>
+<td>Thresholds with a guaranteed harmful-action rate</td>
+<td>Adaptive conformal for drift</td>
+</tr>
+<tr>
+<td><strong>Time-series foundation models</strong> (Chronos-2, TimesFM-2.5, Moirai-2)</td>
+<td>"Expected value" plausibility checks on ETAs, dwell times and sensor streams</td>
+<td>Open weights, zero-shot</td>
+</tr>
+<tr>
+<td><strong>OR solvers</strong> (OR-Tools CP-SAT, HiGHS)</td>
+<td>Hard feasibility: capacity, time windows, hours of service, inventory balance</td>
+<td>The LLM never overrides these</td>
+</tr>
+<tr>
+<td><strong>MCP and A2A</strong></td>
+<td>FidelityGate is exposed as an MCP tool so any agent framework can call it; A2A messages carry the fidelity envelope</td>
+<td>Vendor-neutral integration</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry GenAI conventions + Langfuse</strong></td>
+<td>Traces every gate decision with its features, tokens and latency</td>
+<td>Self-hosted</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="9-research-questions-and-hypotheses">9. Research questions and hypotheses</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Research question</th>
+<th>Hypothesis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RQ1</td>
+<td>Which kinds of data fault cause the most operational harm when agents act on them?</td>
+<td>H1: Staleness, contradiction and "echo" (duplicated sources) cause more harm than random noise of the same size.</td>
+</tr>
+<tr>
+<td>RQ2</td>
+<td>Does action-specific fidelity predict harm better than dataset-level quality scores or the LLM's own confidence?</td>
+<td>H2: DWDF gives a better risk–coverage curve than both.</td>
+</tr>
+<tr>
+<td>RQ3</td>
+<td>Can conformal thresholds keep harmful actions below a target while keeping most actions automatic?</td>
+<td>H3: The harmful-action rate stays at or below α on held-out and drifted data, with an autonomy rate that is reported, not assumed.</td>
+</tr>
+<tr>
+<td>RQ4</td>
+<td>Do fidelity envelopes and blast-radius thresholds contain cascades?</td>
+<td>H4: Lower FABW than ungated multi-agent systems and than a genealogy-graph governance baseline.</td>
+</tr>
+<tr>
+<td>RQ5</td>
+<td>Does recursive evidence interrogation beat long-context prompting and RAG on long histories?</td>
+<td>H5: Higher evidence recall at equal or lower cost and latency.</td>
+</tr>
+<tr>
+<td>RQ6</td>
+<td>Can a small open typed model gate as well as a large LLM?</td>
+<td>H6: Comparable accuracy at much lower latency; Jev as an optional comparator.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-benchmark-fidelitychain-bench">10. Benchmark: FidelityChain-Bench</h2>
+<p>The benchmark is the long-lived asset. Other researchers and companies can use it to test their own agents.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Decision the agent makes</th>
+<th>Ground truth from</th>
+<th>Open data used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1 Shipment exception desk</td>
+<td>Notify, re-tender, expedite, reroute, hold</td>
+<td>Discrete-event simulator of truckload and LTL moves</td>
+<td>OSM road network, BTS FAF flows, NOAA weather</td>
+</tr>
+<tr>
+<td>S2 Multi-echelon replenishment</td>
+<td>Order quantities at four or more echelons</td>
+<td>Beer Game and a two-tier network simulator</td>
+<td>MIT Beer Game rules, open simulators</td>
+</tr>
+<tr>
+<td>S3 Ocean ETA and port connection</td>
+<td>Rebook a connection, move a drayage appointment</td>
+<td>AIS replay with known true tracks</td>
+<td>NOAA MarineCadastre AIS, Danish Maritime Authority AIS</td>
+</tr>
+<tr>
+<td>S4 Cold chain excursion</td>
+<td>Release, quarantine or discard a lot</td>
+<td>Simulated thermal model</td>
+<td>Synthetic GS1 EPCIS 2.0 sensor events</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Perturbation library.</strong> Each operator is versioned, seeded and documented, so every run is reproducible and the clean twin is always available.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>What it does</th>
+<th>Severity knob</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Staleness</td>
+<td>Delays delivery of events while values stay plausible</td>
+<td>Lag in minutes, burst length</td>
+</tr>
+<tr>
+<td>Dropout</td>
+<td>Removes events at random or in bursts</td>
+<td>Missing rate, burst pattern</td>
+</tr>
+<tr>
+<td>Contradiction</td>
+<td>Makes two sources disagree</td>
+<td>Gap size, share of entities</td>
+</tr>
+<tr>
+<td>Echo</td>
+<td>Creates a "second source" that copies the first</td>
+<td>Number of echoes</td>
+</tr>
+<tr>
+<td>Semantic drift</td>
+<td>Changes units, time zones or ID mappings</td>
+<td>Share of records</td>
+</tr>
+<tr>
+<td>Implausible jump</td>
+<td>Inserts physically impossible positions or values</td>
+<td>Jump size</td>
+</tr>
+<tr>
+<td>Targeted spoof</td>
+<td>Changes chosen fields in a stealthy way</td>
+<td>Attack budget</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>Re-sends an old valid event as new</td>
+<td>Age of replayed event</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Scoring.</strong> Every agent is scored on decision cost against the simulator's optimum, harmful-action rate, autonomy rate, risk–coverage curve, FABW, calibration error and latency. Public leaderboard, with code and data under permissive licences.</p>
+<h2 id="11-experiments-baselines-and-metrics">11. Experiments, baselines and metrics</h2>
+<p><strong>Baselines</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Baseline</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B0</td>
+<td>Classical OR policy (base-stock, CP-SAT routing)</td>
+<td>Non-AI reference</td>
+</tr>
+<tr>
+<td>B1</td>
+<td>ReAct-style LLM agent, no gate</td>
+<td>Shows the naive risk</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>Gate on the LLM's self-reported confidence</td>
+<td>Tests "the model knows when it is wrong"</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>Gate on a classic data-quality score (Great Expectations / Soda checks)</td>
+<td>Tests dataset-level quality</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>Multi-agent system with genealogy-graph governance (as in <em>From Spark to Fire</em>)</td>
+<td>Strongest generic cascade defence</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>RLM investigator without the gate</td>
+<td>Value of RLM alone</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>Jev as the gate (optional, if access)</td>
+<td>Proprietary System One comparator</td>
+</tr>
+<tr>
+<td>Full</td>
+<td>DWDF + blast radius + envelopes + RLM acquisition + conformal thresholds</td>
+<td>Proposed system</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Experiments</strong></p>
+<ol>
+<li><strong>Harm map.</strong> Fault type × severity × action type. Which faults hurt which decisions?</li>
+<li><strong>Gate comparison.</strong> Risk–coverage curves for B2, B3, B6 and Full.</li>
+<li><strong>Guarantee check.</strong> Harmful-action rate vs. target α on in-distribution, shifted and adversarial splits.</li>
+<li><strong>Cascade containment.</strong> FABW for ungated, B4 and Full in S2 and in a networked S1.</li>
+<li><strong>Evidence interrogation.</strong> RLM vs. long context vs. RAG vs. summary compaction at matched budgets.</li>
+<li><strong>Systems test.</strong> Event bursts, slow tools, malformed records, queue retries and partial outages. Report p50/p95/p99 latency, throughput and recovery time.</li>
+<li><strong>Optional pilot.</strong> Shadow-mode run on a partner's anonymised event stream.</li>
+</ol>
+<p><strong>Statistics.</strong> Paired runs on the same latent world, at least 30 seeds per cell, bootstrap confidence intervals, Holm correction for multiple comparisons.</p>
+<h2 id="12-compute-plan-one-dgx-spark">12. Compute plan (one DGX Spark)</h2>
+<p>The DGX Spark has a GB10 Grace Blackwell chip with <strong>128 GB unified memory</strong> (273 GB/s) and is rated by NVIDIA for inference on models up to about 200B parameters and fine-tuning up to about 70B (<a href="https://docs.nvidia.com/dgx/dgx-spark/hardware.html">NVIDIA hardware guide</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Open model (licence)</th>
+<th>Fits on one Spark?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Planner agents</td>
+<td>gpt-oss-120b (Apache-2.0, MXFP4) or Qwen3.5-122B-A10B (Apache-2.0, 4-bit)</td>
+<td>Yes. Community benchmarks report roughly 45–70 tokens/s single-stream for gpt-oss-120b depending on the engine (<a href="https://forums.developer.nvidia.com/t/vllm-0-17-0-mxfp4-patches-for-dgx-spark-qwen3-5-35b-a3b-70-tok-s-gpt-oss-120b-80-tok-s-tp-2/362824">NVIDIA forum</a>)</td>
+</tr>
+<tr>
+<td>Fast agents and RLM sub-calls</td>
+<td>Qwen3.5-35B-A3B or Qwen3.5-9B</td>
+<td>Yes, with room to spare</td>
+</tr>
+<tr>
+<td>Recursive investigator</td>
+<td>RLM-Qwen3-8B</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Typed gate</td>
+<td>Qwen3.5-4B with constrained decoding, LoRA-tuned</td>
+<td>Yes; fine-tuning fits easily</td>
+</tr>
+<tr>
+<td>Forecast checks</td>
+<td>Chronos-2 / TimesFM-2.5</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table></div>
+<p>Serving with vLLM or SGLang (structured outputs via XGrammar). Large sweeps can run with smaller models first; the 120B planner is used for the final runs. No paid API is required. Jev is the only optional paid component.</p>
+<h2 id="13-product-fidelitygate">13. Product: FidelityGate</h2>
+<p><strong>What it is.</strong> A vendor-neutral trust layer. It does not replace the TMS, WMS or ERP. It sits between event streams and any agent, and answers one question per proposed action: <em>act, shadow, acquire, review or hold, and why?</em></p>
+<p><strong>Who would use it</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>User</th>
+<th>Pain today</th>
+<th>What FidelityGate gives them</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shipper control tower</td>
+<td>Agents create false expedites and alerts</td>
+<td>Fewer harmful actions, an audit trail for each one</td>
+</tr>
+<tr>
+<td>3PL / forwarder</td>
+<td>Customers blame them for wrong automated actions</td>
+<td>Evidence pack for every decision</td>
+</tr>
+<tr>
+<td>Visibility and TMS vendors</td>
+<td>Their own agents need guardrails</td>
+<td>An embeddable gate (open core)</td>
+</tr>
+<tr>
+<td>Auditors and risk teams</td>
+<td>No way to prove an agent was safe to run</td>
+<td>Calibrated harm rate per action class, aligned with the NIST AI RMF and ISO/IEC 42001</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>API sketch</strong></p>
+<pre><code class="language-json">POST /v1/assess
+{
+  &quot;action&quot;: {&quot;type&quot;: &quot;expedite_air&quot;, &quot;shipment_id&quot;: &quot;SH-20931&quot;, &quot;cost_usd&quot;: 18400},
+  &quot;evidence_refs&quot;: [&quot;evt:gps:88123&quot;, &quot;evt:edi214:5521&quot;, &quot;evt:eta:991&quot;],
+  &quot;context&quot;: {&quot;deadline&quot;: &quot;2026-10-09T08:00:00Z&quot;}
+}
+
+200 OK
+{
+  &quot;verdict&quot;: &quot;ACQUIRE&quot;,
+  &quot;fidelity&quot;: 0.62,
+  &quot;threshold&quot;: 0.91,
+  &quot;blast_radius&quot;: 3.4,
+  &quot;reasons&quot;: [&quot;latest GPS ping is 3h12m old&quot;, &quot;EDI 214 and ETA feed share one upstream source&quot;],
+  &quot;next_evidence&quot;: [{&quot;type&quot;: &quot;device_ping&quot;, &quot;expected_gain&quot;: 0.21, &quot;max_wait_s&quot;: 300}],
+  &quot;provenance_subgraph&quot;: &quot;graph:snap:2026-10-07T14:05:00Z/SH-20931&quot;,
+  &quot;decision_id&quot;: &quot;dec_7f3a…&quot;,
+  &quot;idempotency_key&quot;: &quot;SH-20931:expedite_air:v3&quot;
+}
+</code></pre>
+<p><strong>Production hardening (so it does not break)</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Duplicate side effects</td>
+<td>Idempotency key on every job; transactional outbox; two-phase prepare → validate → commit</td>
+</tr>
+<tr>
+<td>Model or service outage</td>
+<td>Circuit breakers; fall back to rules-only gate; the safe default is HOLD, never "act anyway"</td>
+</tr>
+<tr>
+<td>Bursts and runaway loops</td>
+<td>BullMQ rate limits, backpressure, max retries with exponential backoff and jitter, dead-letter queues</td>
+</tr>
+<tr>
+<td>Silent drift</td>
+<td>Online calibration monitoring; alert when the harmful-action rate on recent outcomes exceeds α</td>
+</tr>
+<tr>
+<td>Reproducibility and audit</td>
+<td>Event-sourced log; bi-temporal graph snapshot ID, model version, prompt version and policy version stored with each decision</td>
+</tr>
+<tr>
+<td>Bad inputs</td>
+<td>Pydantic / JSON-Schema contracts at every boundary; structured outputs only</td>
+</tr>
+<tr>
+<td>Prompt injection via documents</td>
+<td>Documents are parsed into typed claims; text from documents never becomes instructions</td>
+</tr>
+<tr>
+<td>Rollout risk</td>
+<td>Shadow mode → canary on one lane → graduated autonomy per action class</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td>Property-based tests (Hypothesis), load tests (k6 or Locust), chaos tests (kill workers, delay tools)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Service-level targets (to be validated, not claimed):</strong> fast path (rules + graph features + small model) p95 under 250 ms; slow path with LLM or RLM p95 under 5 s; 99.9% availability for the gate API.</p>
+<p><strong>Open-core model.</strong> Gate engine, benchmark and connectors open source (Apache-2.0). Paid: hosted version, enterprise connectors (SAP, Oracle, Blue Yonder), compliance reporting.</p>
+<h2 id="14-risks-and-how-to-handle-them">14. Risks and how to handle them</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overlap with 2026 work on agent bullwhip, autonomy assessment and error cascades</td>
+<td>Cite them directly. Position this work as the <strong>data-fidelity cause</strong> and the <strong>decision-level control</strong>, with operational costs and guarantees.</td>
+</tr>
+<tr>
+<td>Benchmark seen as "too synthetic"</td>
+<td>Real network structure and real AIS tracks; corruption operators clearly labelled synthetic; optional shadow pilot.</td>
+</tr>
+<tr>
+<td>Calibration breaks under drift</td>
+<td>Adaptive conformal methods; report results on drifted splits.</td>
+</tr>
+<tr>
+<td>The gate blocks too much</td>
+<td>Report autonomy rate and risk–coverage curves; tune α per action class with the business.</td>
+</tr>
+<tr>
+<td>Graph engineering eats the schedule</td>
+<td>Start with Postgres + AGE; use graph features only where they measurably help.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Do not claim:</strong> that LLM confidence measures data trust; that the system is "production-safe" before stress tests; that synthetic faults are real incidents; that Jev is open source.</p>
+<h2 id="15-twelve-month-plan">15. Twelve-month plan</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Months</th>
+<th>Work</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–2</td>
+<td>Literature review, formal model, Proposition 1 proof</td>
+<td>Problem-formulation draft</td>
+</tr>
+<tr>
+<td>2–4</td>
+<td>Simulators S1–S4, perturbation library, event schema</td>
+<td>FidelityChain-Bench v0.1</td>
+</tr>
+<tr>
+<td>4–5</td>
+<td>Baselines B0–B5</td>
+<td>Harm map (Experiment 1)</td>
+</tr>
+<tr>
+<td>5–8</td>
+<td>DWDF estimator, conformal gate, envelopes, RLM acquisition</td>
+<td>FidelityGate v0.1</td>
+</tr>
+<tr>
+<td>8–10</td>
+<td>Experiments 2–6, ablations</td>
+<td>Results tables</td>
+</tr>
+<tr>
+<td>10–12</td>
+<td>Writing; benchmark release; optional pilot</td>
+<td>Journal submission + benchmark paper</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="16-papers-you-can-get-from-this-topic">16. Papers you can get from this topic</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Paper</th>
+<th>Venue type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Know When Not to Act: decision-weighted fidelity and blast-radius gating</td>
+<td>Operations / decision science (IJPR, EJOR, DSS, Omega)</td>
+</tr>
+<tr>
+<td>FidelityChain-Bench: stress-testing supply-chain agents on imperfect data</td>
+<td>AI benchmark track (NeurIPS D&amp;B, KDD)</td>
+</tr>
+<tr>
+<td>Recursive evidence interrogation for long operational histories</td>
+<td>AI systems / NLP venue</td>
+</tr>
+<tr>
+<td>Open System One gates: typed, calibrated decisions for agent guardrails</td>
+<td>ML systems workshop or journal</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="17-sources">17. Sources</h2>
+<ol>
+<li>Zhang, A. L., Kraska, T., Khattab, O. <em>Recursive Language Models.</em> arXiv:2512.24601 (2025; v2 2026 adds RLM-Qwen3-8B). https://arxiv.org/abs/2512.24601 · code https://github.com/alexzhang13/rlm · DSPy module https://dspy.ai/api/modules/RLM/</li>
+<li>Long, C. X., Simchi-Levi, D., et al. <em>Reliability and Effectiveness of Autonomous AI Agents in Supply Chain Management.</em> arXiv:2605.17036 (May 2026). https://arxiv.org/abs/2605.17036</li>
+<li><em>Agentic AI Autonomy Assessment: A Decision-Support Framework Towards Governed Supply Chain Systems.</em> arXiv:2607.25405 (July 2026). https://arxiv.org/abs/2607.25405</li>
+<li><em>From Spark to Fire: Modeling and Mitigating Error Cascades in LLM-Based Multi-Agent Collaboration.</em> arXiv:2603.04474 (2026). https://arxiv.org/abs/2603.04474</li>
+<li><em>Hallucination Cascade: Analyzing Error Propagation in Multi-Agent LLM Systems.</em> arXiv:2606.07937 (2026). https://arxiv.org/abs/2606.07937</li>
+<li><em>From Agent Traces to Trust: A Survey of Evidence Tracing and Execution Provenance in LLM Agents.</em> arXiv:2606.04990 (2026). https://arxiv.org/abs/2606.04990</li>
+<li>Salas, J. <em>Correct Is Not Governed: Provenance Integrity in Agentic Workflows.</em> arXiv:2608.12761 (2026). https://arxiv.org/abs/2608.12761</li>
+<li><em>Silence Is Endorsement: Verification-Status Laundering in LLM Agent Pipelines.</em> arXiv:2609.20211 (2026). https://arxiv.org/abs/2609.20211</li>
+<li><em>AgentNoiseBench: Benchmarking Robustness of Tool-Using LLM Agents Under Noisy Conditions.</em> arXiv:2602.11348 (2026). https://arxiv.org/abs/2602.11348</li>
+<li>Guan, S., Liu, Y., Cao, L. <em>SupChain-Bench.</em> Findings of ACL 2026. https://aclanthology.org/2026.findings-acl.371/</li>
+<li><em>Helicase: Uncertainty-Guided Supply Chain Knowledge Graph Construction with Autonomous Multi-Agent LLMs.</em> arXiv:2605.26835 (2026). https://arxiv.org/abs/2605.26835</li>
+<li>Jannelli, V., Schoepf, S., Bickel, M., Netland, T., Brintrup, A. <em>Agentic LLMs in the Supply Chain: Towards Autonomous Multi-Agent Consensus-Seeking.</em> arXiv:2411.10184. https://arxiv.org/abs/2411.10184</li>
+<li><em>Foundation Models for Logistics: Toward Certifiable, Conversational Planning Interfaces.</em> arXiv:2507.11352. https://arxiv.org/abs/2507.11352</li>
+<li><em>OptiRepair: Closed-Loop Diagnosis and Repair of Supply Chain Optimization Models with LLM Agents.</em> arXiv:2602.19439. https://arxiv.org/abs/2602.19439</li>
+<li><em>Masking Stale Observations Helps Search Agents, Until It Doesn't.</em> arXiv:2606.00408 (2026). https://arxiv.org/abs/2606.00408</li>
+<li>Tayebati et al. <em>CAP: Conformalized Abstention Policies.</em> PMLR v304. https://proceedings.mlr.press/v304/tayebati26a.html</li>
+<li>Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., Schuster, T. <em>Conformal Risk Control.</em> ICLR 2024.</li>
+<li>Chow, C. K. <em>On optimum recognition error and reject tradeoff.</em> IEEE Transactions on Information Theory, 1970.</li>
+<li>Lee, H. L., Padmanabhan, V., Whang, S. <em>Information distortion in a supply chain: the bullwhip effect.</em> Management Science, 1997.</li>
+<li>Hazen, B. T., Boone, C. A., Ezell, J. D., Jones-Farmer, L. A. <em>Data quality for data science, predictive analytics, and big data in supply chain management.</em> IJPE, 2014.</li>
+<li>Rasmussen, P. et al. <em>Zep: A Temporal Knowledge Graph Architecture for Agent Memory.</em> arXiv:2501.13956 (2025). Graphiti: https://github.com/getzep/graphiti</li>
+<li>Gartner. <em>Gartner Predicts 60% of Supply Chain Disruptions Will Be Resolved Without Human Intervention by 2031.</em> 18 March 2026. https://www.gartner.com/en/newsroom/press-releases/2026-03-18-gartner-predicts-60-percent-of-supply-chain-disruptions-will-be-resolved-without-human-intervention-by-2031</li>
+<li>Gartner. <em>What Agentic AI Demands From Your Supply Chain Data Strategy.</em> https://www.gartner.com/en/documents/8141429</li>
+<li>BCG. <em>Why AI Isn't Delivering ROI in Logistics.</em> 2026. https://www.bcg.com/publications/2026/why-ai-isnt-delivering-roi-logistics</li>
+<li>DHL. <em>Logistics Trend Radar 8.0.</em> 24 September 2026. https://group.dhl.com/en/media-relations/press-releases-teaser/2026/dhl-logistics-trend-radar-8.html</li>
+<li>TypeSafe AI. <em>Introducing System One Models &amp; Jev.</em> 15 September 2026. https://typesafe.ai/blog/introducing-system-one-models-and-jev</li>
+<li>BullMQ documentation. https://docs.bullmq.io</li>
+<li>NVIDIA. <em>DGX Spark hardware overview.</em> https://docs.nvidia.com/dgx/dgx-spark/hardware.html</li>
+<li>GS1 EPCIS &amp; CBV 2.0. https://www.gs1.org/standards/epcis · W3C PROV-Overview. https://www.w3.org/TR/prov-overview/</li>
+<li>Hormuz AIS transit analysis, August 2026. https://timewell.jp/en/columns/hormuz-strait-transit-data-analysis</li>
+</ol>
+<p><em>Verification note: facts were checked through web search on 7 October 2026. arXiv, Gartner and BCG pages could not be opened directly from the research environment, so their details come from search-engine extracts. Open each source and re-check numbers before citing them in a manuscript.</em></p>
+</article>
+</div>
+<footer class="colophon"><span>Prepared 7 October 2026 · built from <code>topic1_fidelity_gated_autonomy.md</code></span>
+<span>Open-source research plan · re-check every source before citing</span></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function render() {
+    if (!window.mermaid) return;
+    var tv = {
+      background: tok('--surface'), primaryColor: tok('--accent-soft'), primaryBorderColor: tok('--accent'),
+      primaryTextColor: tok('--ink'), nodeTextColor: tok('--ink'), textColor: tok('--ink'),
+      lineColor: tok('--muted'), secondaryColor: tok('--tint'), tertiaryColor: tok('--surface'),
+      clusterBkg: tok('--tint'), clusterBorder: tok('--rule'), titleColor: tok('--ink'),
+      edgeLabelBackground: tok('--surface'), fontFamily: 'Barlow, Helvetica Neue, Arial, sans-serif', fontSize: '15px'
+    };
+    try {
+      window.mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: tv,
+        flowchart: { curve: 'basis', useMaxWidth: true } });
+      var p = window.mermaid.run({ querySelector: 'pre.mermaid' });
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render); else render();
+})();
+</script>
+</body>
+</html>
