@@ -255,7 +255,7 @@ def inline_md(text):
 
 def link_fix(fragment):
     fragment = re.sub(r'href="README\.md(#[^"]*)?"', lambda m: f'href="00_overview.html{m.group(1) or ""}"', fragment)
-    return re.sub(r'href="(topic[0-9][^"/]*?)\.md(#[^"]*)?"',
+    return re.sub(r'href="((?:topic[0-9]|final_topic)[^"/]*?)\.md(#[^"]*)?"',
                   lambda m: f'href="{m.group(1)}.html{m.group(2) or ""}"', fragment)
 
 

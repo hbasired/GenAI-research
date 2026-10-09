@@ -16,6 +16,8 @@
 
 ---
 
+> **Superseded (9 October 2026).** This candidate topic was merged into the [final topic](final_topic_when_the_data_lies.md). Some figures and licence statements here were later corrected or downgraded; see the corrections box in the [overview](README.md) and Section 23 of the final document before reusing anything from this page.
+
 ## 1. The problem in plain words
 
 Supply-chain software is moving from **recommending** to **acting**. AI agents now rebook freight, reroute trucks, expedite orders, change safety stock and message customers on their own. They act on whatever data feed they are given, and in logistics that data is often wrong in quiet ways. A GPS ping is three hours old. Two systems disagree on whether a container was discharged. A "delivered" status was sent before the truck arrived. A unit changed from cases to pallets in one system but not the other.
