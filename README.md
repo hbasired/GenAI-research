@@ -17,6 +17,11 @@ pip install markdown==3.7
 python research-topics/_build/build_pages.py
 ```
 
+## Research proposal
+
+- [`proposal/When_the_Data_Lies_Research_Proposal_B_Hemanth.docx`](proposal/When_the_Data_Lies_Research_Proposal_B_Hemanth.docx): the formal proposal for submission (Word, with table of contents, two figures, eight tables and 69 references). It follows the section structure of the programme's reference proposal.
+- To rebuild it after editing `proposal/_build/content.js`: `python proposal/_build/build.py` (needs Node.js with the `docx` package, matplotlib, LibreOffice and Poppler). The script fills in the table of contents page numbers; after editing in Word instead, right-click the table of contents and choose Update Field.
+
 ## Code
 
 - **Live AIS recorder:** [`docs/ais_recorder.md`](docs/ais_recorder.md). Records the free aisstream.io feed for the Gulf every day with one command (`tracktrust record`), repairs itself after crashes, and turns each day into Parquet tables with a coverage summary. Source in `src/tracktrust/`, settings in `config/aisstream.toml`, tests in `tests/`.
