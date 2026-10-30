@@ -1,0 +1,370 @@
+// Text of the research proposal. Markup used in strings:
+//   **bold**, *italic*, [@key] or [@key1, @key2] for citations (numbered in order of first use),
+//   and in equations _{...} for subscripts and ^{...} for superscripts.
+// Section structure follows the programme's reference proposal.
+
+const meta = {
+  title: "When the Data Lies",
+  subtitle: "Fidelity-Gated AI Agents for Spoofed, Stolen and Broken Logistics Evidence",
+  kind: "Research Proposal",
+  scopeLine:
+    "Scope: the first study covers maritime position and carrier-commitment evidence; carrier identity fraud and cost-to-deceive follow as a second study.",
+  lines: [
+    "Author: B Hemanth",
+    "Class: MAIB March 2025",
+    "Project area: Agentic AI in Logistics, Supply Chains and Maritime Risk",
+    "Supervisor: Prof. Dr. Debashis Guha",
+    "Primary data: public AIS archives (United States, Denmark, Norway, Finland) and a live AIS recording of the Gulf",
+    "First paper (working title): Fidelity-Gated Automation for Liner-Shipping Commitments under GNSS Interference: Corruption-Aware Divergence Detection and Risk-Controlled Decisions",
+    "Date: 30 October 2026",
+  ],
+  footer: "When the Data Lies Research Proposal",
+  honesty:
+    "This proposal keeps a clear line between what has already been published and what this study still has to build and test. Every figure quoted from earlier work is a source-reported number, not a result of this project. Several 2026 sources are vendor reports or preprints and are marked as such. Hardware figures are planning estimates from published benchmarks and will be replaced with measurements once the system runs.",
+};
+
+const blocks = [
+  // ---------------------------------------------------------------- Abstract
+  { h1: "Abstract", pageBreakBefore: true },
+  { p: `Logistics firms are starting to let AI agents rebook, reroute and release cargo on their own. Each of these actions rests on three kinds of evidence: where a ship is (AIS and GNSS positions), who the counterparty is (identity) and what the carrier promised (the booked voyage). During 2026 all three failed at scale. GNSS interference affected more than 1,100 vessels in the Gulf within about a day of the 28 February strikes on Iran, and several carriers declared End of Voyage and discharged Gulf-bound cargo at substitute ports. Agent-security defences protect the integrity of an agent's instructions; they do not test whether a well-formed value returned by a tool is true. This study proposes a fidelity gate that sits between logistics agents and the actions they take. For each proposed action it estimates the probability that acting on the available evidence is harmless for that specific action, requires support from sources that cannot be faked by a single attack, weighs how far a mistake would spread to downstream actions, and returns ACT, VERIFY, REVIEW or HOLD, with thresholds calibrated by conformal risk control. A second component detects early when a voyage stops following its commitment, using a cumulative-sum statistic in which each AIS reading is weighted by the probability, taken from a jamming map built from other vessels, that it is uncorrupted. The first study is maritime only. It uses free public AIS archives from the United States, Denmark, Norway and Finland with synthetic spoofing and voyage deviations that carry exact labels, and a live AIS recording of the Gulf that began in October 2026. The question driving the work is simple to state: can an agent that knows when its evidence is unreliable automate as much as an unguarded agent while causing fewer harmful actions?` },
+  { h2: "Keywords" },
+  { p: `Agentic AI; data fidelity; AIS; GNSS spoofing and jamming; maritime logistics; carrier commitments; End of Voyage; quickest change detection; conformal risk control; selective prediction; supply-chain risk.` },
+
+  // ---------------------------------------------------------------- Contents
+  { toc: true },
+
+  // ---------------------------------------------------------------- 1
+  { h1: "1. Executive Summary", pageBreakBefore: true },
+  { p: `This proposal starts from a practical question in logistics automation: when an AI agent is about to act on a ship's position, a carrier's identity or a carrier's promise, how does it know that the evidence is true enough for that particular action? Today the answer is that it does not. Agents read a feed, see a well-formed value and act. The study treats the reliability of evidence as a quantity to be estimated per action, and makes automation conditional on it.` },
+  { p: `The first study is deliberately narrow. It covers maritime location evidence (AIS positions under GNSS jamming and spoofing) and commitment evidence (whether a voyage is still following the route and ports in the booking). Identity fraud and the full cost-to-deceive analysis are planned as a second paper. The data are free: public AIS archives from NOAA in the United States, the Danish Maritime Authority, the Norwegian Coastal Administration and a Finnish dataset, all replayed at real-time speed with synthetic attacks and deviations injected so that every case has an exact label [@noaa, @dma, @kystverket, @finnish]. A live recording of the Gulf, the Strait of Hormuz and the Gulf of Oman through the free aisstream.io feed was built and started in October 2026, because that feed has no history and the Gulf case study needs data collected now [@aisstream].` },
+  { p: `What the study contributes is a complete, testable decision layer rather than another anomaly detector: a formal definition of decision-weighted fidelity with a threshold that grows with the downstream harm of a mistake, a change-detection statistic for commitment divergence that stays reliable when position data are jammed, a conformal calibration of thresholds with an explicit statement of what is and is not guaranteed, and an open benchmark with leakage-aware splits and an adaptive red team. The target is a Q1 journal in transportation or logistics, with submission planned for September 2027. The work needs no budget beyond one NVIDIA DGX Spark that is already available.` },
+
+  // ---------------------------------------------------------------- 2
+  { h1: "2. Introduction" },
+  { p: `AI agents are moving from advice to action in logistics. Freight brokers have integrated automated carrier screening and vetting into booking workflows [@highway, @transfix], visibility platforms now ship agents that handle exceptions and carrier communication [@fourkites], and Gartner predicts that 60 percent of supply-chain disruptions will be resolved without human intervention by 2031, while limiting full automation to low-risk decisions for now [@gartner]. The value of these agents depends on the evidence they act on, and in 2026 that evidence proved fragile in three ways.` },
+  { p: `**Location.** AIS positions are derived from GNSS, and GNSS can be jammed or spoofed. Within about 24 hours of the 28 February 2026 strikes on Iran, Windward reported more than 1,100 vessels with GPS or AIS interference in the Gulf, and Lloyd's List Intelligence counted 1,735 interference events across 655 vessels up to 2 March (both vendor data) [@windward, @lloyds]. Advisories from the Joint Maritime Information Center described interference continuing through March [@jmic]. A positioning error of this kind does not look like missing data: it arrives as a well-formed message with a plausible-looking position.` },
+  { p: `**Identity.** Verisk CargoNet put cargo-theft losses in the United States and Canada at about USD 725 million for 2025, up 60 percent, and the FBI described the attacks as increasingly carried out by taking over real carriers' accounts and registry records [@cargonet, @fbi]. A booking agent that checks a registry entry sees a clean record because the record itself has been changed.` },
+  { p: `**Commitment.** On 3 March 2026 MSC declared End of Voyage for Gulf-bound cargo on board, with discharge at the next safe port and a charge of USD 800 per container [@msc]. Regional Container Lines ended voyages at Sohar and changed discharge ports to Nhava Sheva or Colombo for some vessels, and Emirates Line invoked its bill-of-lading liberties to discharge at Khor Fakkan at the merchant's risk and cost [@rcl, @emirates]. GEODIS estimated 15,000 to 18,000 containers affected in India alone by 20 March [@geodis]. Maersk applied an emergency freight increase of USD 1,800 to 3,800 per container to cargo already in transit [@maersk_efi]. Even in normal months, schedule reliability is low and its measurement is unstable: Sea-Intelligence reported 56.4 percent for July 2026, while Xeneta, which scores against the initial rather than the latest schedule, reported about 29 percent for January 2026 [@seaintel, @xeneta].` },
+  { p: `The common thread is that the agent's input is false or stale while looking valid. Current agent-security research addresses a different threat: it stops injected text from taking over an agent's control flow, for example by separating control flow from data flow [@camel, @fides]. A spoofed position, a hijacked identity or a promise the carrier is no longer keeping passes those defences unchanged. This study therefore frames the problem as one of *evidence veracity at the point of action*: before an automated logistics action runs, how reliable is the evidence for that action, how hard would it have been to fake, and how far would a mistake spread?` },
+
+  // ---------------------------------------------------------------- 3
+  { h1: "3. Problem Statement and Research Questions" },
+  { p: `Logistics companies are beginning to let AI agents act without a human in the loop, but the location, identity and carrier-commitment data those agents act on is increasingly faked, hijacked or quietly broken, and current defences test whether instructions are genuine rather than whether data are true. In our literature search we found no published method that checks, before an agent acts, whether the evidence is reliable enough for that specific action and how far an error would propagate. The task of this study is to decide, for each proposed automated action, whether to act, verify, escalate to a human or wait, while keeping the rate of harmful automated actions below a stated target and the cost of unnecessary delay as low as possible. The system makes no accusations: it reports the evidence, its reliability and the exposure, never a party's motive.` },
+  { p: `The main research question is: **can a fidelity-gated agent keep the rate of harmful automated actions on corrupted maritime evidence below a stated target while automating at least as much as an agent gated by anomaly scores, and can it detect commitment divergence earlier when position data are jammed?**` },
+  { p: `**RQ1.** Does action-specific fidelity reduce harmful agent actions on corrupted location data better than anomaly-score thresholds? *Hypothesis H1:* at an equal automation rate, the gate produces fewer wrong reroutes and ETA-driven rebookings during jamming.` },
+  { p: `**RQ2.** Can commitment divergence (port omission, early discharge or End of Voyage, a roll to another vessel, unscheduled transhipment, a rotation change) be detected earlier and more reliably when each observation's chance of corruption is modelled? *Hypothesis H2:* corruption-aware change detection gives a shorter detection delay at the same per-booking false-alarm probability under Gulf-like jamming than plain, weighted or robust CUSUM and Bayesian online change-point detection.` },
+  { p: `**RQ3.** Do conformal thresholds keep the harmful-action rate below target, and how far does that guarantee degrade under drift and under an adaptive attacker? *Hypothesis H3:* split conformal risk control keeps the joint rate of harmful automated actions per proposed action at or below target on exchangeable held-out replay data; under attack the worst rolling-window rate is measured and reported rather than assumed.` },
+  { p: `**RQ4.** Is instruction integrity enough? *Hypothesis H4:* with CaMeL-style isolation of control and data flow in place, well-formed false values still cause a measurable share of harmful actions, and the fidelity layer reduces that share at an equal automation rate.` },
+  { p: `**RQ5.** On vessels named in the 2026 carrier advisories, does the detector, with the advisories withheld from its inputs, raise an alarm before the advisory was published? This question is answered descriptively, with small numbers, as a case study.` },
+
+  // ---------------------------------------------------------------- 4
+  { h1: "4. Literature Review" },
+  { h2: "4.1 AIS and GNSS interference and its detection" },
+  { p: `Detection of AIS and GNSS anomalies is an active field. Press coverage of a Georgia Tech measurement study reports more than 367,000 vessels analysed, 31 persistent anomaly hotspots and 17,936 anomalous episodes between November 2024 and February 2025; the paper itself could not be confirmed, so it is cited as context only [@georgia]. SeaSpoofFinder detects physically impossible jumps and then clusters them across vessels, finding events in the Baltic, Black Sea and eastern Mediterranean [@seaspoof]. Park, Cho and Son first remove communication-layer artifacts such as duplicate MMSIs and stale retransmissions and then apply interacting multiple model filtering and space-time clustering; on about 966 million Korean AIS messages they report 98.6 percent fewer false alarms than naive clustering [@park]. Track-consistency checks on crowdsourced ADS-B data show that aircraft integrity flags can stay high during position anomalies, which makes aviation data a useful independent sensor near ports and chokepoints [@adsb]. Earlier single-track methods such as GeoTrackNet model normal AIS tracks with a variational recurrent network and flag deviations by a contrario detection [@geotracknet].` },
+  { p: `Two further findings shape the evaluation. A 2026 leakage audit shows that letting the same vessels appear in training and test data reduced one-hour trajectory prediction error by 23 to 25 percent for transformer models, so vessel-disjoint and time-disjoint splits are required [@leakage]. And the self-reported AIS destination field cannot be trusted as a commitment: about 40 percent of destination reports for large bulk ships were found to be wrong [@destination]. The closest established idea to fidelity for a specific use is GNSS integrity monitoring, where a receiver's protection level is compared with an operation-specific alert limit and the position must not be used if the limit is exceeded [@raim].` },
+  { p: `**What is missing.** These methods stop at a detection label or a cluster. None that we found turns detection into a per-decision reliability score, links it to the actions an automated agent takes, or accounts for several sources that share one point of failure. Multi-vessel coherence detection now exists and is not claimed as new here; it is one input to the gate.` },
+  { h2: "4.2 Carrier commitments, schedules and port calls" },
+  { p: `Liner-shipping research measures and optimises schedule behaviour mainly from the carrier's side. Zhang et al. built a data-driven framework that uncovers port-skipping behaviour from AIS for about 2,000 container ships between 2016 and 2020 [@portskip], and Pais-Montes, Thill and Guerrero identified schedule cancellations on Europe to Far East services from AIS [@cancel]. The Vessel Schedule Recovery Problem formulates recovery actions, including port omission, as a mixed-integer program [@vsrp], and recent work attributes overbooking to shipper and carrier mistrust and proposes mutual deposits with a 0.819-competitive policy [@overbook]. Data standards from the Digital Container Shipping Association define events for port omissions and blank sailings that can serve as independent observations [@dcsa]. On the regulatory side, the US Federal Maritime Commission's 2024 rule on unreasonable refusal to deal lists inaccurate or unreliable vessel information among examples of potentially unreasonable conduct, and a federal appeals court upheld the rule in March 2026 [@fmc_rule, @fmc_court].` },
+  { p: `**What is missing.** We found no peer-reviewed system that gives a shipper early, calibrated and spoof-robust warning that the voyage carrying its booking is diverging from the commitment, and none that encodes the published notice or contract clause that explains a divergence as a checkable rule.` },
+  { h2: "4.3 LLM agents in logistics and agent security" },
+  { p: `Evidence on the reliability of LLM agents in supply chains is accumulating. Long, Simchi-Levi and co-authors show that LLM agents in the MIT Beer Game have run-to-run decision instability that amplifies across echelons, which they call an agent bullwhip [@bullwhip]. SupChain-Bench finds that long-horizon tool orchestration in supply-chain procedures remains unreliable [@supchain], AgentNoiseBench shows that noise injected in the middle of a trajectory hurts most model families [@noisebench], and repeated-run reliability on tool-agent benchmarks falls sharply [@taubench]. On the security side, CaMeL separates control flow from data flow so that untrusted data cannot choose which tool runs [@camel], FIDES enforces information-flow labels deterministically [@fides], and Agent Security Bench reports an average attack success rate of 46.91 percent across 13 model backbones [@asb]. The OWASP 2026 list ranks excessive agency third among risks for LLM applications [@owasp].` },
+  { p: `**What is missing.** In the agent reliability work, falsified inputs are generic noise or a seeded false fact; none models physically or adversarially falsified location or commitment evidence. In the security work, the defences protect instruction integrity. A well-formed but false value is outside what they test.` },
+  { h2: "4.4 Selective prediction, conformal risk control and change detection" },
+  { p: `Deciding when not to act has a long history. Chow's reject rule gives the optimal trade-off between error and abstention for given costs [@chow], selective classification sets a risk target and traces the risk-coverage curve for deep networks [@selective], and learning-to-defer methods decide when to hand a decision to a human with consistent training objectives [@defer, @defer2]. Conformal risk control chooses a threshold so that the expected value of a monotone loss stays below a target with finite-sample guarantees under exchangeability [@crc]; conformal selection controls the false discovery rate among selected units [@confsel]; and adaptive conformal inference keeps long-run coverage under distribution shift [@aci]. AbstentionBench shows that LLMs, reasoning models in particular, rarely abstain when they should, which argues for a gate outside the model [@abstention]. Two more ideas carry over directly: secure estimation shows that a state cannot be reconstructed once half or more of the sensors are controlled by an attacker [@secure], and data quality has long been defined as fitness for use in a specific task [@fitness]. Evaluation must also respect the selective-labels problem: outcomes are observed only for actions that were taken [@sellabels].` },
+  { p: `For commitment divergence, the relevant theory is quickest change detection: the CUSUM procedure [@page], Lorden's worst-case delay criterion [@lorden], generalised likelihood ratio rules for unknown post-change parameters [@lai], robust detection when distributions are only known to lie in uncertainty classes [@robustqcd] and Bayesian online change-point detection [@bocpd].` },
+  { p: `**What is missing.** Conformal guarantees assume exchangeable data, which an adaptive attacker breaks by design, and we found no change-detection work that models a per-observation corruption probability driven by an external jamming map. These two gaps define the method of this study.` },
+
+  // ---------------------------------------------------------------- 5
+  { h1: "5. Data Plan" },
+  { p: `The study uses only data that are free to access. The main experiments run on public AIS archives, replayed at real-time speed, with synthetic attacks and deviations injected on top. A live recording of the Gulf provides the real-world case study. Table 1 lists the sources and their role; every source's licence and terms are recorded, and anything derived from a non-commercial source is kept out of any later product.` },
+  {
+    table: {
+      widths: [1750, 2150, 2510, 2950],
+      header: ["Source", "Coverage", "Access and terms", "Role in this study"],
+      rows: [
+        ["NOAA MarineCadastre AIS [@noaa]", "US waters; daily files for 2025", "Free download; redistribution terms not stated", "Training, replay and benchmark base"],
+        ["Danish Maritime Authority AIS [@dma]", "Danish waters, including Baltic interference areas", "Free download; no warranty; access can be withdrawn", "Training and replay; documented Baltic jamming events"],
+        ["Norwegian Coastal Administration AIS [@kystverket]", "Norwegian waters", "Open API tier under the Norwegian open licence", "Region-disjoint test set"],
+        ["Finnish AIS dataset [@finnish]", "Finnish waters, April 2021 to December 2022", "Zenodo, CC BY 4.0", "Region-disjoint test set"],
+        ["Live aisstream.io recording [@aisstream]", "Gulf, Strait of Hormuz and Gulf of Oman (22.0 to 30.5 N, 47.5 to 62.5 E), from October 2026", "Free API key; no published licence or coverage statement; research use only", "Gulf case study and real-time demonstration"],
+        ["Global Fishing Watch APIs [@gfw]", "Global port visits, AIS gaps and encounters (events, not raw tracks)", "Free token; CC BY-NC, research only", "Independent labels and cross-checks"],
+        ["IMF PortWatch [@portwatch]", "Daily chokepoint transits", "Free", "Context for the Hormuz case study"],
+        ["Copernicus Sentinel-1 SAR [@sentinel]", "Global radar imagery, revisit of days", "Free tier", "Independent validation in selected windows"],
+        ["JMIC advisories [@jmic]", "Dated interference areas in the region", "Public PDFs", "Validation of jamming zones"],
+        ["Carrier advisories, 2026 [@msc, @rcl, @emirates]", "End of Voyage notices, port changes and surcharges", "Public notices, archived on receipt", "Hand-labelled dataset of real commitment changes"],
+      ],
+      caption: "Table 1. Data sources, terms and intended use. Volumes for each source are measured on download and recorded in a data card.",
+    },
+  },
+  { p: `There is no free historical source of Gulf position tracks for March 2026: the open archives do not cover the Gulf, aisstream.io is live only, and Global Fishing Watch provides events rather than tracks. The Gulf case study is therefore built from the carrier notices themselves (carrier, date, region, clause invoked and the vessels named), from port-visit and gap events for those vessels where they exist, from PortWatch aggregates, and from the live recording that is now running. If none of these yields usable tracks for the named vessels, the commitment case study uses notice-level evidence only and the jammed-track analysis uses documented Baltic events inside the Danish archive. Either way the case study is reported as descriptive.` },
+  { p: `To avoid validating AIS-derived labels only against other AIS-derived signals, jamming zones are also compared with independent sources: ADS-B track-consistency maps near ports and chokepoints [@adsb], dated JMIC advisories and Sentinel-1 detections for selected windows. Agreement with AIS-derived sources is reported separately and labelled consistency, not accuracy.` },
+  {
+    table: {
+      widths: [2300, 3200, 3860],
+      header: ["Asset", "What it provides", "How it will be used"],
+      rows: [
+        ["Live recorder (built, October 2026)", "Hourly raw files kept verbatim, connection events, daily Parquet tables and coverage summaries", "Gulf data collection from now on; separates recorder outages from silent feed periods"],
+        ["Synthetic injection operators", "Circle and airport-displacement jamming, targeted spoofing, MMSI cloning, spoofed port calls, dark periods; port omission, early discharge, roll, transhipment", "Exact labels on real tracks; operators held out between training and test"],
+        ["OMAD synthetic anomalies [@omad]", "Equation-grounded synthetic maritime anomalies (MIT-licensed code)", "Comparison point for the injection design"],
+        ["Hand-labelled 2026 notice set", "Typed End of Voyage, port-omission and surcharge events with the clause invoked", "Real commitment changes; extraction accuracy measured with two annotators"],
+      ],
+      caption: "Table 2. Supporting assets built or reused by the study.",
+    },
+  },
+
+  // ---------------------------------------------------------------- 6
+  { h1: "6. Proposed Methodology and Architecture" },
+  { p: `The pipeline runs from raw AIS messages and carrier documents to a verdict on each proposed action (Figure 1). Two principles govern it. The first is causal lineage: any score attached to a decision at time t uses only evidence knowable at or before t. The second is that independence of evidence is established from provenance, not assumed: two sources that take their position from the same GNSS receiver area count as one.` },
+  { h2: "6.1 Formal problem formulation" },
+  { p: `Let a be a proposed action (for example, cancel the trucking booked from Jebel Ali and book onward trucking from Sohar), E the evidence available at decision time and S the unknown true state of the world. Let L(a, S) be the loss of taking a in state S, including the cost of delay, and a^{*}(S) the best action in hindsight. The evidence comes from channels (an AIS feed, a carrier event API, a terminal system) grouped into coupling groups: a set of channels that one common-cause attack corrupts together, such as every AIS, tracker and truck position derived from one jammed GNSS area. The decision-weighted fidelity of action a is the probability that acting stays within a tolerance δ_{a} of the best action:` },
+  { eq: "F(E, a) = P( L(a, S) - L(a^{*}(S), S) ≤ δ_{a} | E )", n: 1 },
+  { p: `F is estimated by a calibrated model F̂ over features: kinematic residuals, multi-vessel coherence, the number of distinct provenance roots, contradiction density, evidence age relative to the speed of the process, per-source reliability updated from matured outcomes, and forecast residuals. A mistake can spread: a wrong reroute can trigger rebookings, storage and onward transport. Let h_{a} be the expected local harm of a harmful action, p_{au} the probability that downstream action u is harmed given that a was executed and harmful, and define the propagated harm` },
+  { eq: "H_{a} = h_{a} (1 + β_{a}),   where   β_{a} = (1 / h_{a}) Σ_{u} p_{au} h_{u}", n: 2 },
+  { figure: "figure1_pipeline.png", widthIn: 6.0, caption: "Figure 1. Proposed pipeline from AIS and commitment evidence to a verdict on each proposed agent action." },
+  { p: `Comparing the expected cost of acting, (1 - F) H_{a}, with that of human review, r_{a} + F d_{a} + (1 - F) e_{R} H_{a}, where r_{a} is the review cost, d_{a} the cost of delaying a correct action and e_{R} the probability that the reviewer misses a harmful action, gives the cost-optimal threshold (Lemma 1):` },
+  { eq: "τ_{a}^{*} = min{ 1, max[ 0, ( H_{a}(1 - e_{R}) - r_{a} ) / ( H_{a}(1 - e_{R}) + d_{a} ) ] }", n: 3 },
+  { p: `With no propagation (β_{a} = 0) and no delay or reviewer error this reduces to Chow's reject rule, 1 - r_{a} / H_{a} [@chow]. Actions whose mistakes spread further therefore need stronger evidence. The contribution claimed is the estimation of p_{au} on the dependency graph of actions and the empirical comparison with a plain Chow rule, not the formula itself.` },
+  { p: `Because F̂ is only an estimate, the threshold is also calibrated. For each action class, with n calibration cases and empirical risk R̂_{n}(τ) = (1/n) Σ_{i} 1{harm_{i}} 1{F̂_{i} ≥ τ}, conformal risk control [@crc] sets` },
+  { eq: "τ̂_{a} = inf{ τ : (n / (n + 1)) R̂_{n}(τ) + 1 / (n + 1) ≤ α_{a} },   and the operating threshold is   τ_{a} = max( τ_{a}^{*}, τ̂_{a} )", n: 4 },
+  { p: `This bounds the expected joint rate of harmful automated actions per proposed action by α_{a}, under exchangeability. It needs at least ⌈1/α_{a}⌉ - 1 calibration cases per class (49 for α = 2 percent, 99 for α = 1 percent), so classes with fewer cases stay in shadow mode or human review. The guarantee is in expectation over the calibration draw, it is not a guarantee under drift, and an adaptive attacker breaks exchangeability by design; these limits are measured rather than assumed away (Section 8).` },
+  { h2: "6.2 Data ingestion, storage and the live Gulf recorder" },
+  { p: `All AIS sources are converted into one schema: the NOAA and Danish daily CSV files, the Norwegian API, the Finnish dataset and the aisstream.io JSON messages. Communication-layer artifacts (duplicate MMSIs, stale retransmissions, timestamp errors) are removed before any spoofing inference, because they otherwise dominate false alarms [@park]. Raw positions are stored in partitioned Parquet files and queried with DuckDB; only derived claims such as port calls, jamming-zone openings and the positions referenced by decisions go into a bi-temporal evidence store in PostgreSQL with PostGIS, which records both when a fact was true and when the system learned it. That second time axis is what allows any past verdict to be replayed exactly.` },
+  { p: `The live recorder was built first because its data cannot be collected later. It subscribes to the aisstream.io feed for the Gulf box, writes every message exactly as received to hourly compressed files, reconnects automatically after drops, server errors and silent periods, repairs files after a crash, and each UTC day converts the data to four tables: positions, static and voyage data, base stations and aids to navigation. It also logs a heartbeat every ten minutes, so that the daily summary separates periods when the recorder was off from periods when it was running and the feed was silent. Only the second kind of gap can say anything about vessels switching off their transponders. Shore base stations are recorded separately because their positions are fixed: a jump in a base station's reported position or clock is a direct sign of GNSS interference. The recorder is covered by 104 automated tests against a local replica of the feed's protocol.` },
+  { h2: "6.3 Location fidelity branch" },
+  { p: `Every position is scored for physical plausibility against the vessel's recent state and type: implied speed, turn rate, land crossing and reporting gaps. The scored stream is then aggregated on a hexagonal H3 grid in ten-minute windows. When many independent vessels in the same cell show the same impossible jump, the cell is marked as an active jamming zone; a one-ring halo around each cell prevents zones from being split at cell boundaries. Port calls are reconstructed from position history, as analysts advised after ships calling at Polish ports showed AIS tracks jumping to the Kaliningrad area [@baltic], and any call that falls inside an active zone or a reporting gap is marked as low fidelity. The output for each position is a trust score with reasons, and the zone map is published to the commitment watch and the gate.` },
+  { h2: "6.4 Commitment watch: corruption-aware change detection" },
+  { p: `For each booking b the commitment is the declared vessel, voyage, port of loading, port of discharge and planned route, stored in versions. The null hypothesis is that execution follows the commitment; it is tested both against the version at booking confirmation and against the latest version, and results are reported for both, because the two choices change reliability figures by more than 25 percentage points [@seaintel, @xeneta]. The alternative is a deviation of type j starting at an unknown time: port omission, early discharge or End of Voyage, a roll to another vessel, unscheduled transhipment or a rotation change. A published carrier advisory is treated as an observed change in the commitment and handled by rules, not counted as a statistical deviation.` },
+  { p: `Each observation o_{t} is modelled as a mixture of the true signal and corruption. The probability ω_{t} that o_{t} is uncorrupted comes from a two-state hidden Markov model driven only by exogenous side information (the jamming map built from other vessels, with the tested vessel left out, source reliability and gap length), so it is known before o_{t} is seen. With f_{0} and f_{1}^{j} the densities under the commitment and under deviation j, and q_{c} a broad density for corrupted positions, the statistic is` },
+  { eq: "Λ_{t}^{j} = log[ ( ω_{t} f_{1}^{j}(o_{t}) + (1 - ω_{t}) q_{c}(o_{t}) ) / ( ω_{t} f_{0}(o_{t}) + (1 - ω_{t}) q_{c}(o_{t}) ) ]", n: 5 },
+  { eq: "S_{t}^{j} = max( 0, S_{t-1}^{j} + Λ_{t}^{j} ),   with an alarm when   S_{t}^{j} ≥ b^{j}", n: 6 },
+  { p: `If ω_{t} is computed without looking at o_{t} and the densities are correct, the exponentiated sum of Λ is a non-negative martingale under the null hypothesis, and Ville's inequality bounds the false-alarm probability from any start time by e^{-b}. A conservative starting threshold is b^{j} = log(J N / α_{FA}) for J deviation types and N observations per booking, which is then tightened by Monte Carlo on vessel-disjoint replays of voyages that kept schedule, so that the upper 95 percent bootstrap bound of the per-booking false-alarm rate stays at or below α_{FA}. Readings judged almost surely corrupted add almost nothing to the statistic. The simpler heuristic of multiplying the log-likelihood ratio by ω_{t} is kept as a baseline because it loses this guarantee exactly when corruption is present. Targeted spoofing that follows a vessel coherently is not part of q_{c}; it is handled by the location branch and tested by the red team.` },
+  { p: `Every alarm is labelled by typed rules that carry a jurisdiction field: explained by a published notice (for example End of Voyage with the clause invoked) or unexplained. Labels never assert intent. Each alarm also carries an exposure estimate for the cargo owner (carrier surcharges, storage, demurrage and detention, onward carriage) using the 2026 charge levels as parameter ranges [@msc, @maersk_efi], and that estimate feeds the harm terms of Section 6.1.` },
+  { h2: "6.5 The fidelity gate and verification ladder" },
+  { p: `The gate allows ACT on action a only if three conditions hold (Figure 2): the estimated fidelity is at or above the operating threshold, F̂(E, a) ≥ τ_{a}; at least m supporting sources have pairwise disjoint provenance roots, with any coupling group inside an active jamming zone, or of unknown status, counted as zero support because faking it costs an attacker nothing; and hard physical, capacity and legal constraints pass. Under these assumptions the cheapest successful attack must compromise at least m independent groups, a design rule with its closest formal analogue in secure estimation [@secure]. Otherwise the gate chooses among VERIFY, REVIEW and HOLD by least expected cost. VERIFY runs the check with the highest expected value of sample information net of its cost and delay, such as reconstructing the port call from neighbouring vessels or querying the carrier's event API, and re-assesses when the check returns; a timeout leads to HOLD, never to ACT. Every ACT carries a signed, short-lived token bound to the exact action parameters and evidence snapshot, so an agent cannot act on a stale or altered verdict. LLMs never take the final decision on an irreversible action; they extract typed claims and explain.` },
+  { figure: "figure2_gate.png", widthIn: 5.6, caption: "Figure 2. Decision logic of the gate for one proposed action." },
+  { h2: "6.6 LLM investigator and adaptive red team as ablations" },
+  { p: `Two components are evaluated strictly as additions to be justified by measurement. The first is an asynchronous investigator: for items sent to human review, a recursive language-model program reads the full history (tracks, registry changes, advisories, documents) inside a sandbox and assembles a case file in which every claim cites an evidence item. It runs off the real-time path. It is compared with long-context prompting and retrieval at equal cost and is kept only if it improves evidence recall or reviewer accuracy. The second is an adaptive red team: for each attacker class (area jammer, targeted spoofer, a carrier that delays or withholds its own notices, and a denial attacker who tries to force harmful holds), a search over versioned attack operators within a fixed budget looks for a harmful ACT or a harmful HOLD. The red team turns the statistical guarantees into measured attack-success curves rather than claims.` },
+
+  // ---------------------------------------------------------------- 7
+  { h1: "7. Sampling Strategy, Labels and Data Splits" },
+  { p: `Real labelled data for this problem do not exist publicly: our searches found no labelled real-world AIS-spoofing benchmark and no dataset of booking-versus-actual discharge deviations. Labels therefore come from synthetic injection on real tracks, where the label is exact by construction. Deviations are generated by re-simulating the rest of the voyage with a physics-constrained route generator between real waypoints, not by splicing edits into a track, because splices leave gaps and jumps that a detector could learn as a shortcut. Every corrupted run has a clean twin run on the same underlying world, so the counterfactual outcome of every proposed action is known.` },
+  { p: `Splits are designed against leakage [@leakage]. Training, calibration and test sets are vessel-disjoint and time-disjoint; whole attack and deviation families and their parameter ranges are held out between training and test (operator-disjoint); and a region-disjoint test trains on NOAA and Danish data and tests on Norwegian and Finnish data. An injector-detectability check trains a classifier to separate benign injected segments from real ones; it must perform at chance, with an AUC of about 0.5, or the injection design is revised. The fidelity model is trained, tuned and calibrated on three disjoint splits.` },
+  { p: `Harmful events are rare in real operations, so evaluation is never balanced: test sets keep a realistic prevalence of corrupted readings and deviations, and the prevalence used is reported. Training may sample corrupted cases more heavily, but only after splitting and only within the training set. The selective-labels problem is handled by construction in the research setting, because replay and twin runs reveal what would have happened to held and deferred actions [@sellabels]; in any later pilot a small randomised audit stream provides outcomes that the gate did not select.` },
+
+  // ---------------------------------------------------------------- 8
+  { h1: "8. Baselines, Prior Metrics and Evaluation Plan" },
+  { p: `The proposed gate must win against strong opposition, not weak baselines. Table 3 lists the comparison set. Graph and learned models must also beat tree ensembles with neighbourhood features, which often match or beat specialised graph neural networks on anomaly benchmarks [@gadbench].` },
+  {
+    table: {
+      widths: [1300, 4030, 4030],
+      header: ["ID", "Baseline", "Why it is included"],
+      rows: [
+        ["B0", "Rules: speed, land mask, registry checks, schedule difference", "What industry does today"],
+        ["B0b", "Alerting on carrier notices and DCSA omission events only", "Tests whether detection adds anything beyond reading the carrier's own notices"],
+        ["B1", "Single-track detectors (GeoTrackNet-style, recurrent and autoencoder models) [@geotracknet]", "Literature baselines for anomaly detection"],
+        ["B2", "Multi-vessel coherence detectors [@seaspoof, @park]", "Strongest recent detection methods"],
+        ["B3", "Tree ensemble with neighbour features; static and temporal graph networks", "Graph baselines that must be beaten [@gadbench]"],
+        ["B4", "LLM agent with tools and no gate", "Naive autonomy"],
+        ["B5", "Agent gated by the LLM's own confidence", "Tests whether the model knows when it is wrong [@abstention]"],
+        ["B6", "Agent with CaMeL-style isolation and no fidelity layer", "Instruction integrity alone (RQ4) [@camel]"],
+        ["B7", "Calibrated classifier with a plain Chow rule, no propagation and no independence check", "Isolates the value of propagated harm [@chow]"],
+        ["B8", "Learning to defer", "Strongest cost-sensitive deferral baseline [@defer, @defer2]"],
+        ["CUSUM family", "Plain, weighted and robust CUSUM; hard filtering then CUSUM; Bayesian online change-point detection; rule-based schedule difference", "Baselines for RQ2, all calibrated to the same per-booking false-alarm probability [@page, @robustqcd, @bocpd]"],
+      ],
+      caption: "Table 3. Baselines. An optional proprietary typed-decision model may be added as a paid comparator if access is free for research.",
+    },
+  },
+  { p: `No published system reports the decision metrics this study uses, so there is no prior number to beat directly for the gate itself. Table 4 lists the source-reported figures that frame the problem and the comparison.` },
+  {
+    table: {
+      widths: [2500, 2500, 2400, 1960],
+      header: ["Source-reported work", "Setting", "Reported figure", "Use in this project"],
+      rows: [
+        ["Multi-vessel coherence with communication-integrity filtering [@park]", "About 966 million Korean AIS messages", "98.6 percent fewer false alarms than naive clustering", "Baseline B2 and the cleaning step"],
+        ["Georgia Tech measurement study, press-reported [@georgia]", "More than 367,000 vessels, November 2024 to February 2025", "31 hotspots; 17,936 anomalous episodes", "Context only; paper not confirmed"],
+        ["Leakage audit [@leakage]", "AIS trajectory prediction", "23 to 25 percent lower one-hour error when vessels overlap between training and test", "Justifies vessel-disjoint splits"],
+        ["AIS destination reliability [@destination]", "Large bulk ships", "About 40 percent of destination reports wrong", "AIS destination is not used as the commitment"],
+        ["Port-skipping from AIS [@portskip]", "About 2,000 container ships, 2016 to 2020", "Fleet-level port-skipping behaviour", "Real-label subset of port omissions"],
+        ["Agent Security Bench [@asb]", "13 LLM backbones", "Average attack success rate 46.91 percent", "Motivates gating outside the model"],
+        ["Schedule reliability [@seaintel, @xeneta]", "Global liner services, 2026", "56.4 percent (July, latest schedule) against about 29 percent (January, initial schedule)", "Both commitment versions are tested"],
+      ],
+      caption: "Table 4. Prior figures are source-reported and are not project results. Vendor and press figures are unaudited.",
+    },
+  },
+  { p: `The primary metrics are pre-registered before the main experiments: the joint harmful-action rate at a fixed automation rate (RQ1, RQ3) and the conditional average detection delay at a fixed per-booking false-alarm probability (RQ2). Table 5 defines the full set.` },
+  {
+    table: {
+      widths: [2600, 3960, 2800],
+      header: ["Metric", "Definition", "Why it matters"],
+      rows: [
+        ["Harmful-action rate (primary)", "Harmful automated actions per 100 proposed actions", "The quantity the gate bounds"],
+        ["Automation rate", "Share of proposed actions executed without a human, including after an automated check", "The benefit side of the trade-off"],
+        ["Risk-coverage curve", "Harmful-action rate as a function of automation rate", "Compares gates across all thresholds"],
+        ["Detection delay (CADD)", "Mean time from the start of a deviation to its alarm, given an alarm after the start", "How early a shipper is warned (RQ2)"],
+        ["Timely detection", "Probability of an alarm before a decision deadline, such as arrival at the substitute port", "Whether the warning is still useful"],
+        ["Per-booking false-alarm probability", "Probability of any alarm on a voyage that kept its commitment; also false alarms per 1,000 bookings per week", "Operational alarm load"],
+        ["HOLD and REVIEW cost", "Volume and delay cost of holds and reviews under jamming and denial attacks", "The cost of being too cautious"],
+        ["Attack success against budget", "Red-team success rate as a function of attack budget", "Robustness beyond average-case results"],
+        ["Calibration", "Expected calibration error with stated binning, reliability diagrams and Brier score", "Whether F̂ can be read as a probability"],
+        ["Latency", "p50, p95 and p99 time from event to verdict", "Real-time fitness"],
+        ["Value of early warning", "Expected avoided cost per container as a function of detection lead time", "Managerial relevance"],
+      ],
+      caption: "Table 5. Evaluation metrics.",
+    },
+  },
+  { p: `All methods are compared on paired runs over the same underlying world. The unit of analysis is the vessel or voyage: confidence intervals come from a paired cluster bootstrap that resamples vessels, seed-to-seed variance is reported separately, and multiple comparisons are corrected with the Holm procedure. The number of episodes is set by a power analysis on a pilot, for example 80 percent power to detect a 20 percent relative reduction in the harmful-action rate. Each method's threshold is set on the calibration split, and the achieved rates on the test split are reported.` },
+
+  // ---------------------------------------------------------------- 9
+  { h1: "9. Hardware and Feasibility Plan" },
+  { p: `The study runs on one NVIDIA DGX Spark, which has 128 GB of unified memory shared by CPU and GPU at 273 GB/s [@lmsys]. Large models decode slowly on it because decoding is limited by memory bandwidth, so the design keeps large models off the real-time path. The figures in Table 6 are published benchmarks used for planning, not measurements of this project.` },
+  {
+    table: {
+      widths: [2400, 2500, 4460],
+      header: ["Workload", "Model or tool", "Planning evidence"],
+      rows: [
+        ["Real-time scoring and gate", "Rules, graph features, small calibrated models; no large model", "Targets: p95 below 100 ms per position; gate p95 below 300 ms without an LLM"],
+        ["Typed extraction and fast gate model", "gpt-oss-20b, Apache-2.0 [@gptoss]", "About 83 tokens/s decode in a llama.cpp benchmark [@llamacpp] and 49.7 tokens/s in an Ollama test [@lmsys]"],
+        ["Investigator and red team (offline)", "gpt-oss-120b, Apache-2.0 [@gptoss]", "About 58.7 tokens/s decode and 2,444 tokens/s prefill at empty context; about 42.8 tokens/s at 32k context [@llamacpp]"],
+        ["Change detection, graph learning", "NumPy, PyTorch Geometric", "Small memory; aarch64 builds to be checked"],
+        ["Storage and queries", "Parquet with DuckDB; PostgreSQL with PostGIS", "Sized from the first weeks of recording"],
+      ],
+      caption: "Table 6. Workloads and planning evidence. Open-weight models are used only after their licences are read; gpt-oss is the default because its Apache-2.0 licence is confirmed.",
+    },
+  },
+  {
+    table: {
+      widths: [2400, 4060, 2900],
+      header: ["Mode", "Resident components", "Approximate memory"],
+      rows: [
+        ["Service (default)", "gpt-oss-20b gate model and cache, embedder, PostgreSQL, message queue and operating system", "About 45 to 55 GB"],
+        ["Investigation window (scheduled)", "gpt-oss-120b plus gpt-oss-20b for sub-calls, databases and operating system", "About 105 to 120 GB; the gate then runs rules-only or with a reduced cache"],
+      ],
+      caption: "Table 7. Memory budget on one DGX Spark (planning arithmetic, to be measured).",
+    },
+  },
+  { p: `A single investigation of about eight reasoning turns on the 120-billion-parameter model and twenty sub-calls on the 20-billion-parameter model takes roughly three to four minutes on one stream, which is why investigation is asynchronous with a ten-minute target. Data volumes for the live recording are not yet known: a planning estimate of a few hundred megabytes of compressed data per day for the Gulf box will be replaced by the measured figure from the first weeks of recording, which the recorder reports automatically.` },
+  { p: `The research needs no budget. All software is open source under OSI-approved licences, the data are free, and the DGX Spark is available. Money would be needed only later, for a product: hosting for paying pilots and a licensed AIS feed with guaranteed Gulf coverage, since the free feed has no published coverage or terms. As in any empirical study, more compute does not guarantee a better result. The plan therefore defines success broadly: a lower harmful-action rate at equal automation, or equal safety with less human review, or earlier detection at equal false alarms, and it commits to reporting neutral and negative results.` },
+
+  // ---------------------------------------------------------------- 10
+  { h1: "10. Project Plan and Timeline" },
+  {
+    table: {
+      widths: [2200, 3200, 3960],
+      header: ["Period", "Focus", "Deliverable"],
+      rows: [
+        ["October 2026 (done)", "Topic, literature search, live recorder", "Recorder running on the Gulf box; this proposal"],
+        ["November 2026 to January 2027", "Read core papers in full; formal model; ingestion of the four archives into one schema; location branch (cleaning, physics, coherence, port calls); baselines B0 to B2; injection operators; hand-labelled 2026 notice set", "Problem formulation draft; benchmark version 0.1; pre-registration of primary metrics"],
+        ["February to April 2027", "Corruption-aware change detection; gate with Lemma 1 and conformal calibration; baselines B3 to B8 and the CUSUM family", "First results tables; go or no-go decision at the end of April"],
+        ["May to August 2027", "Independence rule; red team for each attacker class; full experiments; value of early warning; Gulf case study; writing", "Complete manuscript and reproducibility package"],
+        ["September 2027", "Submission", "Paper 1 submitted to Transportation Research Part E or Part C"],
+        ["September to December 2027", "Prototype", "Working prototype of the commitment watch and position trust services"],
+        ["2028", "Second study", "Paper 2 on identity fidelity and cost-to-deceive; benchmark paper"],
+      ],
+      caption: "Table 8. Plan and deliverables. A buffer of six to eight weeks is spread across 2027.",
+    },
+  },
+  { p: `The go or no-go decision in April 2027 protects the timeline. If corruption weighting shows no gain over the CUSUM baselines (H2), Paper 1 is reframed around the gate and its calibration (RQ1 and RQ3) with standard detectors, and the negative result is reported.` },
+
+  // ---------------------------------------------------------------- 11
+  { h1: "11. Expected Contributions" },
+  { bullets: [
+    `**Decision-weighted fidelity with propagated harm:** a per-action definition of evidence reliability and a Chow-type threshold that grows with the downstream harm of a mistake, calibrated by conformal risk control, with the guarantee and its limits stated explicitly.`,
+    `**Commitment fidelity:** spoof-robust, voyage-level detection of divergence between the declared voyage and the observed one, with labels that link each alarm to the published notice or clause that explains it, and an exposure estimate for the cargo owner.`,
+    `**Corruption-aware quickest change detection:** a CUSUM statistic in which each observation's corruption probability comes from an external jamming map, with a valid false-alarm bound when that probability is computed without the observation itself.`,
+    `**A data-veracity layer for agents:** an evaluation of how much harm well-formed false values still cause when instruction integrity is already enforced, and how much the gate removes.`,
+    `**An open benchmark and an open recording pipeline:** location and commitment tracks with leakage-aware splits, held-out attack families, an injector-detectability check and an adaptive red team, together with the recorder used to collect the Gulf data.`,
+  ] },
+  { h2: "11.1 Relationship to Prior Work and Scope of Claims" },
+  { p: `Several components are published work and are used, not claimed. Multi-vessel coherence detection of spoofing comes from recent work [@seaspoof, @park]; port-call extraction and fleet-level port-skipping analysis from the liner-shipping literature [@portskip, @cancel]; Chow's rule, selective classification and learning to defer from decision theory and machine learning [@chow, @selective, @defer]; conformal risk control and adaptive conformal inference from statistics [@crc, @aci]; CUSUM and its robust variants from change-detection theory [@page, @robustqcd]; and control-flow isolation for agents from agent security [@camel].` },
+  { p: `What this study adds is the combination and its honest measurement: per-action fidelity with harm propagated over a dependency graph of actions; an independence rule that discounts sources sharing one jammed GNSS area; a corruption model for change detection driven by a map built from other vessels; commitment divergence linked to published notices; and an evaluation that reports risk-coverage curves, detection delay at fixed false alarms, holding costs and attack success against budget.` },
+  { p: `The study does not claim that the system detects all spoofing, that it can establish why a carrier diverged (opportunism, force majeure and congestion look the same in the data), that synthetic attack rates reflect real-world frequency, that conformal guarantees hold against an adaptive attacker, or that strong results on replayed and synthetic data prove readiness for deployment. The idea that carriers unload contracted cargo mid-voyage specifically to take a higher-paying cargo rests on a single anecdotal trade-press report and is not used as a premise.` },
+
+  // ---------------------------------------------------------------- 12
+  { h1: "12. Risks, Ethics and Governance" },
+  { p: `The main scientific risk is the gap between synthetic labels and reality. It is addressed with real-event case studies, an independent validation set, hand-labelled samples with inter-annotator agreement, leakage-aware splits and the injector-detectability check. A second risk is that reviewers challenge novelty because multi-vessel detection now exists; the contribution is therefore positioned on the decision layer, commitment fidelity and corruption-aware detection, with the 2026 detection work cited directly. A third is scope: one person cannot build everything at once, which is why the first paper covers only maritime location and commitment evidence.` },
+  { p: `The main operational risk is unfair harm to third parties. The system reports divergence and exposure, never motive, and it never labels a real carrier, vessel or person as fraudulent in public outputs; only synthetic identities are released. Legal labels are typed rules with a jurisdiction field, to be reviewed by a maritime lawyer before any product use. The tool supports human judgement and does not replace it.` },
+  { p: `On data and law: no radio-frequency jamming or spoofing is ever performed, since it is illegal and unnecessary; all attacks are synthetic data. The terms of every source are recorded, data under non-commercial licences are used for research only [@gfw], and recorded aisstream.io data are not redistributed. Before any pilot, interview or use of partner data, institutional ethics and data-protection review will be requested. Every manuscript will declare the use of AI tools as the target journal requires, and every cited source will be read in full before submission.` },
+  { p: `Dual use is limited by publishing methods and a synthetic benchmark while keeping any production thresholds private, and by a responsible-disclosure note in the benchmark documentation.` },
+
+  // ---------------------------------------------------------------- 13
+  { h1: "13. Conclusion" },
+  { p: `The title "When the Data Lies" names the problem plainly: the risk in agentic logistics is not only an agent that is told to do the wrong thing, but an agent that is told the wrong thing about the world and acts on it. The subtitle names the response, a fidelity gate for spoofed, stolen and broken evidence, and the first paper narrows it to the maritime case where 2026 supplied both the motivation and the data.` },
+  { p: `The study is publishable only if it stays honest. It has to beat strong baselines, evaluate at realistic prevalence, state exactly what its guarantees cover, report the attacks that succeed and the ablations that fail, and keep the limits of synthetic data in plain sight. That is why the gate, the change detector, the investigator and the red team are framed as hypotheses to be tested rather than results decided in advance.` },
+
+  // ---------------------------------------------------------------- References
+  { references: true },
+];
+
+const references = {
+  windward: `Windward, "Widespread GPS jamming hits 1,000-plus ships in the Middle East," Windward blog, 2026. [Online]. Available: https://windward.ai/blog/gps-jamming-disrupts-1100-ships-in-the-middle-east-gulf/`,
+  lloyds: `Lloyd's List, "War zone GNSS interference surges across the Middle East Gulf," Lloyd's List, Mar. 4, 2026. [Online]. Available: https://www.lloydslist.com/LL1156512/War-zone-GNSS-interference-surges-across-the-Middle-East-Gulf`,
+  jmic: `Joint Maritime Information Center, "JMIC advisory note, update 015," Mar. 15, 2026. [Online]. Available: https://mscio.eu/media/documents/Update_015_-_JMIC_Advisory_Note_15_MAR_2026_FINAL.pdf`,
+  cargonet: `CCJ, "CargoNet: Cargo theft losses surged 60% in 2025," CCJ (reporting Verisk CargoNet data), 2026. [Online]. Available: https://www.ccjdigital.com/regulations/article/15815405/cargo-theft-activity-flat-losses-surged-in-2025-cargonet`,
+  fbi: `Federal Bureau of Investigation, Internet Crime Complaint Center, "Cyber-enabled strategic cargo theft surging," Public Service Announcement I-043026-PSA, Apr. 30, 2026. [Online]. Available: https://www.ic3.gov/PSA/2026/PSA260430`,
+  msc: `MSC Mediterranean Shipping Company, "Important notice: End of Voyage declaration for shipments to the Arabian Gulf," customer advisory, Mar. 2026. [Online]. Available: https://www.msc.com/en/newsroom/customer-advisories/2026/march/important-notice-end-of-voyage-declaration-for-shipments-to-the-arabian-gulf`,
+  rcl: `Regional Container Lines, "Customer advisory #04: Service RWG2 update to Middle East," with advisories #03-1, #05 and #06-1, Mar. 2026. [Online]. Available: https://rclgroup.com/PressReleaseArticle/NEWS1332`,
+  emirates: `Emirates Shipping Line, "Customer advisory ESL Busan 2606," Mar. 24, 2026. [Online]. Available: https://www.emiratesline.com/wp-content/uploads/2026/03/Customer-Advisory-ESL-BUSAN-2606.pdf`,
+  geodis: `GEODIS, "Middle East situation," customer advisory, Mar. 20, 2026. [Online]. Available: https://geodis.com/customer-advisory/middle-east-situation`,
+  maersk_efi: `A.P. Moller-Maersk, "Strait of Hormuz: Emergency freight increase," customer advisory, Mar. 2, 2026. [Online]. Available: https://www.maersk.com/news/articles/2026/03/02/strait-of-hormuz-emergency-freight-increase`,
+  seaintel: `Sea-Intelligence, "Global schedule reliability drops to 62.6% in June 2026," press release, 2026; July 2026 figure of 56.4% as reported by Container News. [Online]. Available: https://sea-intelligence.com/press-room/400-global-schedule-reliability-drops-to-62-6-in-june-2026`,
+  xeneta: `Xeneta, "Xeneta schedule reliability scorecard: January 2026 monthly update," Xeneta blog, 2026. [Online]. Available: https://www.xeneta.com/blog/xeneta-schedule-reliability-scorecard-january-2026-monthly-update`,
+  gartner: `Gartner, "Gartner predicts 60% of supply chain disruptions will be resolved without human intervention by 2031," press release, Mar. 18, 2026. [Online]. Available: https://www.gartner.com/en/newsroom/press-releases/2026-03-18-gartner-predicts-60-percent-of-supply-chain-disruptions-will-be-resolved-without-human-intervention-by-2031`,
+  highway: `Highway, "CloneOps.ai and Highway announce strategic integration to automate carrier screening and fraud prevention," press release, 2025. [Online]. Available: https://highway.com/press-releases/cloneops-ai-and-highway-announce-strategic-integration-to-automate-carrier-screening-and-fraud-prevention`,
+  transfix: `FreightWaves, "Transfix integrates Highway carrier vetting into TMS," FreightWaves, 2026. [Online]. Available: https://www.freightwaves.com/news/transfix-integrates-highway-carrier-vetting-into-tms`,
+  fourkites: `IT Brief UK, "FourKites unveils AI agents Tracy & Sam for efficiency boost," IT Brief, 2025. [Online]. Available: https://itbrief.co.uk/story/fourkites-unveils-ai-agents-tracy-sam-for-efficiency-boost`,
+  camel: `E. Debenedetti et al., "Defeating prompt injections by design," arXiv:2503.18813, 2025.`,
+  fides: `M. Costa et al., "Securing AI agents with information-flow control," arXiv:2505.23643, 2025.`,
+  georgia: `Hackread, "367,000-ship study finds global GPS spoofing, Red Sea activity before grounding," press coverage of a Georgia Tech measurement study, 2026. [Online]. Available: https://hackread.com/ship-study-global-gps-spoofing-red-sea-activity/`,
+  seaspoof: `J. Winkel, T. Willems, C. O'Driscoll, and I. Fernandez-Hernandez, "SeaSpoofFinder: Potential GNSS spoofing event detection using AIS," arXiv:2602.16257, 2026.`,
+  park: `S. Park, D. Cho, and P.-W. Son, "Wide-area GNSS spoofing and jamming detection using AIS-derived spatiotemporal integrity monitoring," arXiv:2603.11055, 2026.`,
+  adsb: `S. Park, H. Lee, and P.-W. Son, "Track-consistency-based GNSS RFI monitoring using crowdsourced ADS-B sensor networks," arXiv:2607.09700, 2026.`,
+  geotracknet: `D. Nguyen, R. Vadaine, G. Hajduch, R. Garello, and R. Fablet, "GeoTrackNet: A maritime anomaly detector using probabilistic neural network representation of AIS tracks and a contrario detection," IEEE Transactions on Intelligent Transportation Systems, 2021, doi: 10.1109/TITS.2021.3055614.`,
+  leakage: `Z. Raisi et al., "Protocol before progress: Leakage-aware evaluation of AIS trajectory prediction," arXiv:2609.25827, 2026.`,
+  destination: `D. Yang, L. X. Wu, and S. A. Wang, "Can we trust the AIS destination port information for bulk ships? Implications for shipping policy and practice," Transportation Research Part E, vol. 149, Art. no. 102308, 2021, doi: 10.1016/j.tre.2021.102308.`,
+  raim: `Huang et al., "A survey of GNSS receiver autonomous integrity monitoring: Research status and opportunities," Frontiers in Physics, 2025, doi: 10.3389/fphy.2025.1567301.`,
+  portskip: `L. Zhang, D. Yang, X. Bai, and K.-H. Lai, "How liner shipping heals schedule disruption: A data-driven framework to uncover the strategic behavior of port-skipping," Transportation Research Part E, vol. 176, Art. no. 103229, 2023.`,
+  cancel: `C. Pais-Montes, J.-C. Thill, and D. Guerrero, "Identification of shipping schedule cancellations with AIS data: An application to the Europe-Far East route before and during the COVID-19 pandemic," Maritime Economics & Logistics, vol. 26, no. 3, pp. 490-508, 2024.`,
+  vsrp: `B. D. Brouer, J. Dirksen, D. Pisinger, C. E. M. Plum, and B. Vaaben, "The Vessel Schedule Recovery Problem (VSRP): A MIP model for handling disruptions in liner shipping," European Journal of Operational Research, vol. 224, no. 2, pp. 362-374, 2013.`,
+  overbook: `J. Feldman, Y. Huang, and P. Kouvelis, "Prophet inequalities for a new class of overbooking problems in container shipping," Operations Research, 2026, doi: 10.1287/opre.2024.0842.`,
+  dcsa: `Digital Container Shipping Association, "Operational vessel schedules standard," DCSA, 2024. [Online]. Available: https://dcsa.org/standards/operational-vessel-schedules`,
+  fmc_rule: `Federal Maritime Commission, "Definition of unreasonable refusal to deal or negotiate with respect to vessel space accommodations," final rule, Federal Register, vol. 89, p. 59648, Jul. 23, 2024.`,
+  fmc_court: `Container News, "US court upholds FMC rule on carrier refusals to deal with shippers," Container News, 2026. [Online]. Available: https://container-news.com/us-court-upholds-fmc-rule-on-carrier-refusals-to-deal-with-shippers`,
+  bullwhip: `C. X. Long, D. Simchi-Levi, F. Zhu, H. Su, A. P. Calmon, and F. P. Calmon, "Reliability and effectiveness of autonomous AI agents in supply chain management," arXiv:2605.17036, 2026.`,
+  supchain: `S. Guan, Y. Liu, and L. Cao, "SupChain-Bench: Benchmarking large language models for real-world supply chain management," in Findings of the Association for Computational Linguistics: ACL 2026, pp. 7526-7550.`,
+  noisebench: `R. Wang et al., "AgentNoiseBench: Benchmarking robustness of tool-using LLM agents under noisy condition," in Proc. International Conference on Machine Learning, 2026, arXiv:2602.11348.`,
+  taubench: `S. Yao, N. Shinn, P. Razavi, and K. Narasimhan, "τ-bench: A benchmark for tool-agent-user interaction in real-world domains," arXiv:2406.12045, 2024.`,
+  asb: `H. Zhang et al., "Agent Security Bench (ASB): Formalizing and benchmarking attacks and defenses in LLM-based agents," in Proc. International Conference on Learning Representations, 2025.`,
+  owasp: `OWASP GenAI Security Project, "OWASP Top 10 for LLM applications 2026," 2026. [Online]. Available: https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/tree/main/2026/final`,
+  chow: `C. K. Chow, "On optimum recognition error and reject tradeoff," IEEE Transactions on Information Theory, vol. 16, no. 1, pp. 41-46, 1970.`,
+  selective: `Y. Geifman and R. El-Yaniv, "Selective classification for deep neural networks," in Advances in Neural Information Processing Systems, vol. 30, 2017.`,
+  defer: `H. Mozannar and D. Sontag, "Consistent estimators for learning to defer to an expert," in Proc. International Conference on Machine Learning, 2020.`,
+  defer2: `H. Mozannar, H. Lang, D. Wei, P. Sattigeri, S. Das, and D. Sontag, "Who should predict? Exact algorithms for learning to defer to humans," in Proc. International Conference on Artificial Intelligence and Statistics, 2023.`,
+  crc: `A. N. Angelopoulos, S. Bates, A. Fisch, L. Lei, and T. Schuster, "Conformal risk control," arXiv:2208.02814, 2022.`,
+  confsel: `Y. Jin and E. J. Candès, "Selection by prediction with conformal p-values," Journal of Machine Learning Research, vol. 24, no. 244, pp. 1-41, 2023.`,
+  aci: `I. Gibbs and E. Candès, "Adaptive conformal inference under distribution shift," in Advances in Neural Information Processing Systems, vol. 34, 2021.`,
+  abstention: `P. Kirichenko, M. Ibrahim, K. Chaudhuri, and S. J. Bell, "AbstentionBench: Reasoning LLMs fail on unanswerable questions," arXiv:2506.09038, 2025.`,
+  secure: `H. Fawzi, P. Tabuada, and S. Diggavi, "Secure estimation and control for cyber-physical systems under adversarial attacks," IEEE Transactions on Automatic Control, vol. 59, pp. 1454-1467, 2014.`,
+  fitness: `R. Y. Wang and D. M. Strong, "Beyond accuracy: What data quality means to data consumers," Journal of Management Information Systems, vol. 12, no. 4, pp. 5-33, 1996.`,
+  sellabels: `H. Lakkaraju, J. Kleinberg, J. Leskovec, J. Ludwig, and S. Mullainathan, "The selective labels problem: Evaluating algorithmic predictions in the presence of unobservables," in Proc. 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 2017, pp. 275-284.`,
+  page: `E. S. Page, "Continuous inspection schemes," Biometrika, vol. 41, no. 1-2, pp. 100-115, 1954.`,
+  lorden: `G. Lorden, "Procedures for reacting to a change in distribution," Annals of Mathematical Statistics, vol. 42, no. 6, pp. 1897-1908, 1971.`,
+  lai: `T. L. Lai, "Sequential changepoint detection in quality control and dynamical systems," Journal of the Royal Statistical Society: Series B, vol. 57, no. 4, pp. 613-658, 1995.`,
+  robustqcd: `J. Unnikrishnan, V. V. Veeravalli, and S. P. Meyn, "Minimax robust quickest change detection," IEEE Transactions on Information Theory, 2011, arXiv:0911.2551.`,
+  bocpd: `R. P. Adams and D. J. C. MacKay, "Bayesian online changepoint detection," arXiv:0710.3742, 2007.`,
+  noaa: `NOAA Office for Coastal Management, "Nationwide Automatic Identification System 2025," NOAA InPort, 2025. [Online]. Available: https://www.fisheries.noaa.gov/inport/item/77594`,
+  dma: `Danish Maritime Authority, "AIS data management policy." [Online]. Available: https://dma.dk/safety-at-sea/navigational-information/ais-data/ais-data-management-policy-`,
+  kystverket: `Norwegian Coastal Administration, "Access to AIS data." [Online]. Available: https://kystverket.no/en/navigation-and-monitoring/ais/access-to-ais-data`,
+  finnish: `D. Bhattacharya, C. Pichardo Vicencio, I. Ul Haq, and S. Lafond, "A large-scale AIS dataset from Finnish waters," arXiv:2609.12938, 2026 (dataset on Zenodo under CC BY 4.0).`,
+  aisstream: `aisstream.io, "aisstream: Free real-time AIS data over WebSockets," GitHub organisation, examples and message models. [Online]. Available: https://github.com/aisstream`,
+  gfw: `Global Fishing Watch, "License and rate limits," Global Fishing Watch API documentation. [Online]. Available: https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits`,
+  portwatch: `International Monetary Fund, "IMF PortWatch," 2026. [Online]. Available: https://portwatch.imf.org`,
+  sentinel: `Copernicus Data Space Ecosystem, "Quotas and limitations," documentation, 2026. [Online]. Available: https://github.com/eu-cdse/documentation/blob/main/Quotas.qmd`,
+  omad: `Y. Hwang et al., "Redefining maritime anomaly detection via equation-grounded synthetic anomalies," in Proc. ACM SIGKDD Conference on Knowledge Discovery and Data Mining, 2026, arXiv:2606.29721.`,
+  gadbench: `J. Tang, F. Hua, Z. Gao, P. Zhao, and J. Li, "GADBench: Revisiting and benchmarking supervised graph anomaly detection," in Advances in Neural Information Processing Systems (Datasets and Benchmarks Track), 2023.`,
+  gptoss: `OpenAI, "gpt-oss," GitHub repository, 2025. [Online]. Available: https://github.com/openai/gpt-oss`,
+  llamacpp: `ggml-org, "llama.cpp benchmarks on NVIDIA DGX Spark (build 7941)," GitHub, 2026. [Online]. Available: https://github.com/ggml-org/llama.cpp/blob/master/benches/dgx-spark/dgx-spark.md`,
+  baltic: `Kuehne+Nagel (relaying Lloyd's List), "AIS spoofing surges in Baltic and Barents Seas," Mar. 31, 2025. [Online]. Available: https://mykn.kuehne-nagel.com/news/article/ais-spoofing-surges-in-baltic-and-barents-sea-31-Mar-2025`,
+  lmsys: `J. Zhou and R. Chen, "NVIDIA DGX Spark in-depth review: A new standard for local AI inference," LMSYS Org blog, Oct. 2025.`,
+};
+
+module.exports = { meta, blocks, references };

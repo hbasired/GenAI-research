@@ -1,0 +1,55 @@
+# aisstream.io recorder settings.
+#
+# The API key is NOT stored here. Put it in a `.env` file in the repository root
+# (see `.env.example`) or in the AISSTREAM_API_KEY environment variable.
+#
+# Bounding boxes are [[lat1, lon1], [lat2, lon2]], two opposite corners in
+# decimal degrees (latitude first), as aisstream.io expects.
+
+# Where recordings go. A relative path is resolved against the directory you
+# run the command from; the recorder prints the absolute path when it starts.
+data_dir = "data"
+
+[recorder]
+# Reconnect if no message arrives for this many seconds while connected.
+stall_timeout_s = 300
+# Longest wait between reconnect attempts.
+max_backoff_s = 300
+# Convert each finished UTC day to Parquet and write its summary automatically.
+auto_compact = true
+# Seconds between progress lines in the terminal.
+status_interval_s = 60
+
+# Regions to record. Only regions with enabled = true are subscribed.
+# Recording more regions means more data; check `tracktrust summary` after a
+# few days before enabling more.
+
+[[regions]]
+name = "gulf_hormuz"
+description = "Arabian Gulf, Strait of Hormuz and Gulf of Oman, including Sohar, Khor Fakkan, Chabahar and Gwadar"
+box = [[22.0, 47.5], [30.5, 62.5]]
+enabled = true
+
+[[regions]]
+name = "red_sea_aden"
+description = "Red Sea, Bab-el-Mandeb and Gulf of Aden"
+box = [[11.0, 32.0], [30.0, 51.5]]
+enabled = false
+
+[[regions]]
+name = "arabian_sea_oman"
+description = "Salalah and Duqm (Oman), used as substitute discharge ports in 2026"
+box = [[15.5, 52.5], [20.5, 58.5]]
+enabled = false
+
+[[regions]]
+name = "india_west_coast"
+description = "Mundra, Kandla, Nhava Sheva (JNPT) and Mumbai"
+box = [[18.0, 68.0], [23.5, 73.5]]
+enabled = false
+
+[[regions]]
+name = "sri_lanka"
+description = "Colombo and Hambantota"
+box = [[5.5, 79.0], [7.5, 81.5]]
+enabled = false

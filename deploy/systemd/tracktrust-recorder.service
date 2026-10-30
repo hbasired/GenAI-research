@@ -1,0 +1,37 @@
+# Runs `tracktrust record` around the clock and restarts it after crashes and reboots.
+#
+# Install as a user service (no root needed):
+#   1. Edit WorkingDirectory and ExecStart below to match where the repository and
+#      its .venv are on this machine.
+#   2. mkdir -p ~/.config/systemd/user
+#      cp deploy/systemd/tracktrust-recorder.service ~/.config/systemd/user/
+#   3. systemctl --user daemon-reload
+#      systemctl --user enable --now tracktrust-recorder
+#   4. So it keeps running after you log out:  sudo loginctl enable-linger $USER
+#
+# Check it:   systemctl --user status tracktrust-recorder
+# Live log:   journalctl --user -u tracktrust-recorder -f
+# Stop it:    systemctl --user stop tracktrust-recorder
+#
+# The API key is read from the .env file in WorkingDirectory.
+
+[Unit]
+Description=TrackTrust aisstream.io AIS recorder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/GenAI-research
+ExecStart=%h/GenAI-research/.venv/bin/tracktrust record
+# SIGINT lets the recorder finish and compress the current file.
+KillSignal=SIGINT
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=30
+# Exit code 2 means the API key was rejected and 3 means another recorder is
+# running; restarting would not help in either case.
+RestartPreventExitStatus=2 3
+
+[Install]
+WantedBy=default.target
