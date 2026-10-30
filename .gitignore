@@ -1,0 +1,17 @@
+# Secrets: the aisstream.io API key lives here and must never be committed.
+.env
+.env.*
+!.env.example
+
+# Recorded AIS data and logs (large, and aisstream.io grants no redistribution rights).
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
